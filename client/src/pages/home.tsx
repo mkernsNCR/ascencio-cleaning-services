@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   Facebook,
-  Instagram
+  Instagram,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,10 +29,145 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Review, InsertReview, InsertContactRequest } from "@shared/schema";
 
+// Language translations
+const translations = {
+  en: {
+    nav: {
+      home: "Home",
+      services: "Services",
+      gallery: "Our Work",
+      reviews: "Reviews",
+      bookNow: "Book Now"
+    },
+    hero: {
+      title: "Professional Cleaning Services You Can Trust",
+      subtitle: "Experience the difference with Ascencio Cleaning Services LLC. We provide thorough, reliable cleaning services for your home and office with attention to every detail.",
+      bilingualNote: "Servicio bilingüe disponible - Bilingual service available",
+      getQuote: "Get Free Quote",
+      ourServices: "Our Services",
+      customerRating: "Customer Rating"
+    },
+    services: {
+      title: "Our Cleaning Services",
+      subtitle: "We offer comprehensive cleaning solutions tailored to your needs, using eco-friendly products and professional techniques.",
+      residential: {
+        title: "Residential Cleaning",
+        description: "Complete home cleaning services including kitchens, bathrooms, bedrooms, and living areas. Weekly, bi-weekly, or monthly options available.",
+        features: ["Deep cleaning services", "Regular maintenance cleaning", "Move-in/move-out cleaning"]
+      },
+      commercial: {
+        title: "Commercial Cleaning",
+        description: "Professional office and commercial space cleaning services to maintain a clean, healthy work environment for your business.",
+        features: ["Office cleaning", "Retail space cleaning", "Post-construction cleanup"]
+      },
+      deep: {
+        title: "Deep Cleaning",
+        description: "Thorough, detailed cleaning service that goes beyond regular maintenance to tackle hard-to-reach areas and built-up grime.",
+        features: ["Inside appliances cleaning", "Baseboard and trim cleaning", "Window interior cleaning"]
+      }
+    },
+    gallery: {
+      title: "Our Work in Action",
+      subtitle: "See the difference our professional cleaning services make"
+    },
+    reviews: {
+      title: "What Our Customers Say",
+      subtitle: "Don't just take our word for it - hear from our satisfied clients",
+      submitTitle: "Share Your Experience",
+      submitSubtitle: "We'd love to hear about your experience with our cleaning services",
+      name: "Your Name",
+      email: "Your Email",
+      rating: "Your Rating",
+      review: "Your Review",
+      submit: "Submit Review"
+    },
+    contact: {
+      title: "Ready to Book Your Cleaning Service?",
+      subtitle: "Get your free quote today! We'll contact you within 24 hours.",
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email Address",
+      phone: "Phone Number",
+      serviceType: "Service Type",
+      propertySize: "Property Size",
+      preferredDate: "Preferred Date",
+      message: "Additional Message (Optional)",
+      submit: "Get Free Quote"
+    }
+  },
+  es: {
+    nav: {
+      home: "Inicio",
+      services: "Servicios",
+      gallery: "Nuestro Trabajo",
+      reviews: "Reseñas",
+      bookNow: "Reservar Ahora"
+    },
+    hero: {
+      title: "Servicios de Limpieza Profesional en los que Puedes Confiar",
+      subtitle: "Experimenta la diferencia con Ascencio Cleaning Services LLC. Proporcionamos servicios de limpieza completos y confiables para tu hogar y oficina con atención a cada detalle.",
+      bilingualNote: "Bilingual service available - Servicio bilingüe disponible",
+      getQuote: "Cotización Gratuita",
+      ourServices: "Nuestros Servicios",
+      customerRating: "Calificación del Cliente"
+    },
+    services: {
+      title: "Nuestros Servicios de Limpieza",
+      subtitle: "Ofrecemos soluciones de limpieza integrales adaptadas a tus necesidades, utilizando productos ecológicos y técnicas profesionales.",
+      residential: {
+        title: "Limpieza Residencial",
+        description: "Servicios completos de limpieza del hogar incluyendo cocinas, baños, dormitorios y áreas de estar. Opciones semanales, quincenales o mensuales disponibles.",
+        features: ["Servicios de limpieza profunda", "Limpieza de mantenimiento regular", "Limpieza de mudanza"]
+      },
+      commercial: {
+        title: "Limpieza Comercial",
+        description: "Servicios profesionales de limpieza de oficinas y espacios comerciales para mantener un ambiente de trabajo limpio y saludable para tu negocio.",
+        features: ["Limpieza de oficinas", "Limpieza de espacios comerciales", "Limpieza post-construcción"]
+      },
+      deep: {
+        title: "Limpieza Profunda",
+        description: "Servicio de limpieza detallado y completo que va más allá del mantenimiento regular para abordar áreas difíciles de alcanzar y suciedad acumulada.",
+        features: ["Limpieza interior de electrodomésticos", "Limpieza de zócalos y molduras", "Limpieza interior de ventanas"]
+      }
+    },
+    gallery: {
+      title: "Nuestro Trabajo en Acción",
+      subtitle: "Ve la diferencia que hacen nuestros servicios de limpieza profesional"
+    },
+    reviews: {
+      title: "Lo que Dicen Nuestros Clientes",
+      subtitle: "No solo confíes en nuestra palabra - escucha a nuestros clientes satisfechos",
+      submitTitle: "Comparte Tu Experiencia",
+      submitSubtitle: "Nos encantaría saber sobre tu experiencia con nuestros servicios de limpieza",
+      name: "Tu Nombre",
+      email: "Tu Correo",
+      rating: "Tu Calificación",
+      review: "Tu Reseña",
+      submit: "Enviar Reseña"
+    },
+    contact: {
+      title: "¿Listo para Reservar tu Servicio de Limpieza?",
+      subtitle: "¡Obtén tu cotización gratuita hoy! Te contactaremos dentro de 24 horas.",
+      firstName: "Nombre",
+      lastName: "Apellido",
+      email: "Correo Electrónico",
+      phone: "Número de Teléfono",
+      serviceType: "Tipo de Servicio",
+      propertySize: "Tamaño de Propiedad",
+      preferredDate: "Fecha Preferida",
+      message: "Mensaje Adicional (Opcional)",
+      submit: "Obtener Cotización Gratuita"
+    }
+  }
+};
+
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedRating, setSelectedRating] = useState(0);
+  const [language, setLanguage] = useState<'en' | 'es'>('en');
   const { toast } = useToast();
+
+  const t = translations[language];
 
   // Fetch reviews
   const { data: reviews = [], isLoading: reviewsLoading } = useQuery<Review[]>({
@@ -161,16 +297,34 @@ export default function HomePage() {
                 <p className="text-xs text-slate-600">LLC</p>
               </div>
             </div>
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-8">
-                <button onClick={() => scrollToSection("home")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Home</button>
-                <button onClick={() => scrollToSection("services")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Services</button>
-                <button onClick={() => scrollToSection("gallery")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Our Work</button>
-                <button onClick={() => scrollToSection("reviews")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Reviews</button>
-                <Button onClick={() => scrollToSection("contact")} className="bg-primary text-white hover:bg-blue-700">Book Now</Button>
+            <div className="hidden md:flex items-center space-x-4">
+              <div className="flex items-baseline space-x-8">
+                <button onClick={() => scrollToSection("home")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">{t.nav.home}</button>
+                <button onClick={() => scrollToSection("services")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">{t.nav.services}</button>
+                <button onClick={() => scrollToSection("gallery")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">{t.nav.gallery}</button>
+                <button onClick={() => scrollToSection("reviews")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">{t.nav.reviews}</button>
+                <Button onClick={() => scrollToSection("contact")} className="bg-primary text-white hover:bg-blue-700">{t.nav.bookNow}</Button>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
+                className="flex items-center gap-2 ml-4"
+              >
+                <Globe className="h-4 w-4" />
+                {language === 'en' ? 'ES' : 'EN'}
+              </Button>
             </div>
-            <div className="md:hidden">
+            <div className="md:hidden flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
+                className="flex items-center gap-1"
+              >
+                <Globe className="h-3 w-3" />
+                {language === 'en' ? 'ES' : 'EN'}
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
@@ -181,11 +335,11 @@ export default function HomePage() {
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-slate-200">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <button onClick={() => scrollToSection("home")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">Home</button>
-              <button onClick={() => scrollToSection("services")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">Services</button>
-              <button onClick={() => scrollToSection("gallery")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">Our Work</button>
-              <button onClick={() => scrollToSection("reviews")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">Reviews</button>
-              <Button onClick={() => scrollToSection("contact")} className="block mx-3 mt-2 bg-primary text-white hover:bg-blue-700 w-auto">Book Now</Button>
+              <button onClick={() => scrollToSection("home")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">{t.nav.home}</button>
+              <button onClick={() => scrollToSection("services")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">{t.nav.services}</button>
+              <button onClick={() => scrollToSection("gallery")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">{t.nav.gallery}</button>
+              <button onClick={() => scrollToSection("reviews")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">{t.nav.reviews}</button>
+              <Button onClick={() => scrollToSection("contact")} className="block mx-3 mt-2 bg-primary text-white hover:bg-blue-700 w-auto">{t.nav.bookNow}</Button>
             </div>
           </div>
         )}
@@ -197,24 +351,30 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
-                Professional Cleaning Services You Can Trust
+                {t.hero.title}
               </h2>
-              <p className="text-xl mb-8 text-blue-100">
-                Experience the difference with Ascencio Cleaning Services LLC. We provide thorough, reliable cleaning services for your home and office with attention to every detail.
+              <p className="text-xl mb-6 text-blue-100">
+                {t.hero.subtitle}
               </p>
+              <div className="bg-blue-800/30 border border-blue-500/50 rounded-lg p-4 mb-8">
+                <p className="text-blue-100 text-center font-medium flex items-center justify-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  {t.hero.bilingualNote}
+                </p>
+              </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
                   onClick={() => scrollToSection("contact")} 
                   className="bg-accent text-white hover:bg-yellow-500 px-8 py-4 text-lg font-semibold"
                 >
-                  Get Free Quote
+                  {t.hero.getQuote}
                 </Button>
                 <Button 
                   onClick={() => scrollToSection("services")} 
                   variant="outline" 
                   className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-primary px-8 py-4 text-lg font-semibold"
                 >
-                  Our Services
+                  {t.hero.ourServices}
                 </Button>
               </div>
             </div>
@@ -231,7 +391,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <div className="text-slate-900 font-bold text-lg">{averageRating}</div>
-                    <div className="text-slate-600 text-sm">Customer Rating</div>
+                    <div className="text-slate-600 text-sm">{t.hero.customerRating}</div>
                   </div>
                 </div>
               </div>
@@ -244,8 +404,8 @@ export default function HomePage() {
       <section id="services" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">Our Cleaning Services</h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto">We offer comprehensive cleaning solutions tailored to your needs, using eco-friendly products and professional techniques.</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">{t.services.title}</h2>
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">{t.services.subtitle}</p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
