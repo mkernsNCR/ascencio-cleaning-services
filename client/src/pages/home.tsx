@@ -128,7 +128,19 @@ export default function HomePage() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
+      // Get the actual navigation header element to calculate its height dynamically
+      const navElement = document.querySelector('nav');
+      const headerHeight = navElement ? navElement.offsetHeight : 64;
+      
+      // Add extra padding for mobile to account for mobile menu space
+      const isMobile = window.innerWidth < 768;
+      const extraPadding = isMobile ? 20 : 10;
+      
+      const elementPosition = element.offsetTop - headerHeight - extraPadding;
+      window.scrollTo({
+        top: Math.max(0, elementPosition), // Ensure we don't scroll to negative position
+        behavior: "smooth"
+      });
     }
     setMobileMenuOpen(false);
   };
