@@ -315,7 +315,7 @@ export default function HomePage() {
                 {language === 'en' ? 'ES' : 'EN'}
               </Button>
             </div>
-            <div className="md:hidden flex items-center gap-2">
+            <div className="md:hidden flex items-center gap-4">
               <Button 
                 variant="outline" 
                 size="sm" 
