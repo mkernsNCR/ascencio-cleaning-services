@@ -291,9 +291,9 @@ export default function HomePage() {
       <nav className="bg-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+            <div className="flex items-center flex-1 min-w-0">
               <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-primary">Ascencio Cleaning Services</h1>
+                <h1 className="text-lg sm:text-2xl font-bold text-primary truncate">Ascencio Cleaning Services</h1>
                 <p className="text-xs text-slate-600">LLC</p>
               </div>
             </div>
@@ -315,12 +315,12 @@ export default function HomePage() {
                 {language === 'en' ? 'ES' : 'EN'}
               </Button>
             </div>
-            <div className="md:hidden flex items-center gap-4">
+            <div className="md:hidden flex items-center gap-3 flex-shrink-0">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 text-xs px-2 py-1"
               >
                 <Globe className="h-3 w-3" />
                 {language === 'en' ? 'ES' : 'EN'}
