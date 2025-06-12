@@ -666,7 +666,7 @@ export default function HomePage() {
                     className="w-full bg-primary hover:bg-blue-700 py-4 text-lg font-semibold"
                     disabled={submitContactMutation.isPending}
                   >
-                    {submitContactMutation.isPending ? "Submitting..." : "Request Free Quote"}
+                    {submitContactMutation.isPending ? (language === 'en' ? "Submitting..." : "Enviando...") : t.contact.submit}
                   </Button>
                 </form>
               </CardContent>
