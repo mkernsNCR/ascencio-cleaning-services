@@ -414,21 +414,15 @@ export default function HomePage() {
                 <div className="bg-primary text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
                   <Home className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-semibold text-slate-900 mb-4">Residential Cleaning</h3>
-                <p className="text-slate-600 mb-6">Complete home cleaning services including kitchens, bathrooms, bedrooms, and living areas. Weekly, bi-weekly, or monthly options available.</p>
+                <h3 className="text-2xl font-semibold text-slate-900 mb-4">{t.services.residential.title}</h3>
+                <p className="text-slate-600 mb-6">{t.services.residential.description}</p>
                 <ul className="text-slate-600 space-y-2">
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Deep cleaning services
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Regular maintenance cleaning
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Move-in/move-out cleaning
-                  </li>
+                  {t.services.residential.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                      {feature}
+                    </li>
+                  ))}
                 </ul>
               </CardContent>
             </Card>
@@ -438,21 +432,15 @@ export default function HomePage() {
                 <div className="bg-secondary text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
                   <Building className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-semibold text-slate-900 mb-4">Commercial Cleaning</h3>
-                <p className="text-slate-600 mb-6">Professional office and commercial space cleaning services to maintain a clean, healthy work environment for your business.</p>
+                <h3 className="text-2xl font-semibold text-slate-900 mb-4">{t.services.commercial.title}</h3>
+                <p className="text-slate-600 mb-6">{t.services.commercial.description}</p>
                 <ul className="text-slate-600 space-y-2">
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Office cleaning
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Retail space cleaning
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Post-construction cleanup
-                  </li>
+                  {t.services.commercial.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                      {feature}
+                    </li>
+                  ))}
                 </ul>
               </CardContent>
             </Card>
@@ -462,21 +450,15 @@ export default function HomePage() {
                 <div className="bg-accent text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
                   <Sparkles className="h-8 w-8" />
                 </div>
-                <h3 className="text-2xl font-semibold text-slate-900 mb-4">Deep Cleaning</h3>
-                <p className="text-slate-600 mb-6">Thorough, detailed cleaning service that goes beyond regular maintenance to tackle hard-to-reach areas and built-up grime.</p>
+                <h3 className="text-2xl font-semibold text-slate-900 mb-4">{t.services.deep.title}</h3>
+                <p className="text-slate-600 mb-6">{t.services.deep.description}</p>
                 <ul className="text-slate-600 space-y-2">
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Inside appliances cleaning
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Baseboard and trim cleaning
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                    Window interior cleaning
-                  </li>
+                  {t.services.deep.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-secondary rounded-full"></div>
+                      {feature}
+                    </li>
+                  ))}
                 </ul>
               </CardContent>
             </Card>
@@ -488,8 +470,8 @@ export default function HomePage() {
       <section id="gallery" className="py-20 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">Our Work in Action</h2>
-            <p className="text-xl text-slate-600">See the difference our professional cleaning services make</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">{t.gallery.title}</h2>
+            <p className="text-xl text-slate-600">{t.gallery.subtitle}</p>
           </div>
           <Carousel />
         </div>
@@ -499,8 +481,8 @@ export default function HomePage() {
       <section id="reviews" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">What Our Customers Say</h2>
-            <p className="text-xl text-slate-600">Don't just take our word for it - hear from our satisfied clients</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">{t.reviews.title}</h2>
+            <p className="text-xl text-slate-600">{t.reviews.subtitle}</p>
           </div>
 
           {reviewsLoading ? (
@@ -548,10 +530,10 @@ export default function HomePage() {
           <div className="mt-16 max-w-2xl mx-auto">
             <Card className="bg-slate-50 border border-slate-200">
               <CardContent className="p-8">
-                <h3 className="text-2xl font-semibold text-slate-900 mb-6 text-center">Leave Us a Review</h3>
+                <h3 className="text-2xl font-semibold text-slate-900 mb-6 text-center">{t.reviews.submitTitle}</h3>
                 <form onSubmit={handleReviewSubmit} className="space-y-6">
                   <div>
-                    <Label className="text-sm font-medium text-slate-700 mb-2">Your Rating</Label>
+                    <Label className="text-sm font-medium text-slate-700 mb-2">{t.reviews.rating}</Label>
                     <div className="mt-2">
                       <StarRating 
                         rating={selectedRating} 
@@ -564,23 +546,23 @@ export default function HomePage() {
                   
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="review-name">Your Name</Label>
+                      <Label htmlFor="review-name">{t.reviews.name}</Label>
                       <Input type="text" id="review-name" name="name" required />
                     </div>
                     <div>
-                      <Label htmlFor="review-email">Email</Label>
+                      <Label htmlFor="review-email">{t.reviews.email}</Label>
                       <Input type="email" id="review-email" name="email" required />
                     </div>
                   </div>
                   
                   <div>
-                    <Label htmlFor="review-text">Your Review</Label>
+                    <Label htmlFor="review-text">{t.reviews.review}</Label>
                     <Textarea 
                       id="review-text" 
                       name="review" 
                       rows={4} 
                       required 
-                      placeholder="Tell us about your experience..."
+                      placeholder={language === 'en' ? "Tell us about your experience..." : "Cuéntanos sobre tu experiencia..."}
                     />
                   </div>
                   
@@ -589,7 +571,7 @@ export default function HomePage() {
                     className="w-full bg-primary hover:bg-blue-700"
                     disabled={submitReviewMutation.isPending}
                   >
-                    {submitReviewMutation.isPending ? "Submitting..." : "Submit Review"}
+                    {submitReviewMutation.isPending ? (language === 'en' ? "Submitting..." : "Enviando...") : t.reviews.submit}
                   </Button>
                 </form>
               </CardContent>
@@ -602,80 +584,80 @@ export default function HomePage() {
       <section id="contact" className="py-20 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">Book Your Cleaning Service</h2>
-            <p className="text-xl text-slate-600">Ready for a spotless space? Contact us today for a free quote</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">{t.contact.title}</h2>
+            <p className="text-xl text-slate-600">{t.contact.subtitle}</p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Contact Form */}
             <Card className="bg-white shadow-lg border border-slate-200">
               <CardContent className="p-8">
-                <h3 className="text-2xl font-semibold text-slate-900 mb-6">Get Your Free Quote</h3>
+                <h3 className="text-2xl font-semibold text-slate-900 mb-6">{t.contact.submit}</h3>
                 <form onSubmit={handleContactSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="first-name">First Name</Label>
+                      <Label htmlFor="first-name">{t.contact.firstName}</Label>
                       <Input type="text" id="first-name" name="firstName" required />
                     </div>
                     <div>
-                      <Label htmlFor="last-name">Last Name</Label>
+                      <Label htmlFor="last-name">{t.contact.lastName}</Label>
                       <Input type="text" id="last-name" name="lastName" required />
                     </div>
                   </div>
                   
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email">{t.contact.email}</Label>
                       <Input type="email" id="email" name="email" required />
                     </div>
                     <div>
-                      <Label htmlFor="phone">Phone</Label>
+                      <Label htmlFor="phone">{t.contact.phone}</Label>
                       <Input type="tel" id="phone" name="phone" required />
                     </div>
                   </div>
                   
                   <div>
-                    <Label htmlFor="service-type">Service Type</Label>
+                    <Label htmlFor="service-type">{t.contact.serviceType}</Label>
                     <Select name="serviceType" required>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a service" />
+                        <SelectValue placeholder={language === 'en' ? "Select a service" : "Selecciona un servicio"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="residential">Residential Cleaning</SelectItem>
-                        <SelectItem value="commercial">Commercial Cleaning</SelectItem>
-                        <SelectItem value="deep-clean">Deep Cleaning</SelectItem>
-                        <SelectItem value="move-in-out">Move-in/Move-out</SelectItem>
+                        <SelectItem value="residential">{t.services.residential.title}</SelectItem>
+                        <SelectItem value="commercial">{t.services.commercial.title}</SelectItem>
+                        <SelectItem value="deep-clean">{t.services.deep.title}</SelectItem>
+                        <SelectItem value="move-in-out">{language === 'en' ? 'Move-in/Move-out' : 'Mudanza'}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   <div>
-                    <Label htmlFor="property-size">Property Size</Label>
+                    <Label htmlFor="property-size">{t.contact.propertySize}</Label>
                     <Select name="propertySize" required>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select size" />
+                        <SelectValue placeholder={language === 'en' ? "Select size" : "Selecciona tamaño"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="small">Small (1-2 bedrooms)</SelectItem>
-                        <SelectItem value="medium">Medium (3-4 bedrooms)</SelectItem>
-                        <SelectItem value="large">Large (5+ bedrooms)</SelectItem>
-                        <SelectItem value="commercial">Commercial Space</SelectItem>
+                        <SelectItem value="small">{language === 'en' ? 'Small (1-2 bedrooms)' : 'Pequeño (1-2 dormitorios)'}</SelectItem>
+                        <SelectItem value="medium">{language === 'en' ? 'Medium (3-4 bedrooms)' : 'Mediano (3-4 dormitorios)'}</SelectItem>
+                        <SelectItem value="large">{language === 'en' ? 'Large (5+ bedrooms)' : 'Grande (5+ dormitorios)'}</SelectItem>
+                        <SelectItem value="commercial">{language === 'en' ? 'Commercial Space' : 'Espacio Comercial'}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   <div>
-                    <Label htmlFor="preferred-date">Preferred Date</Label>
+                    <Label htmlFor="preferred-date">{t.contact.preferredDate}</Label>
                     <Input type="date" id="preferred-date" name="preferredDate" required />
                   </div>
                   
                   <div>
-                    <Label htmlFor="message">Additional Details</Label>
+                    <Label htmlFor="message">{t.contact.message}</Label>
                     <Textarea 
                       id="message" 
                       name="message" 
                       rows={4}
-                      placeholder="Tell us about any specific cleaning needs or requirements..."
+                      placeholder={language === 'en' ? "Tell us about any specific cleaning needs or requirements..." : "Cuéntanos sobre necesidades específicas de limpieza..."}
                     />
                   </div>
                   
