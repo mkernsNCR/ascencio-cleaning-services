@@ -309,7 +309,7 @@ export default function HomePage() {
                 variant="outline" 
                 size="sm" 
                 onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
-                className="flex items-center gap-2 ml-4"
+                className="flex items-center gap-2 ml-8"
               >
                 <Globe className="h-4 w-4" />
                 {language === 'en' ? 'ES' : 'EN'}
