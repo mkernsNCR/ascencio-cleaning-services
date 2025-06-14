@@ -92,7 +92,13 @@ const translations = {
       propertySize: "Property Size",
       preferredDate: "Preferred Date",
       message: "Additional Message (Optional)",
-      submit: "Get Free Quote"
+      submit: "Get Free Quote",
+      info: {
+        phone: "+1-240-355-3108",
+        email: "ascenciocleaning@gmail.com",
+        serviceArea: "DMV Area",
+        serviceAreaDetail: "DC, Maryland & Virginia"
+      }
     }
   },
   es: {
@@ -156,7 +162,13 @@ const translations = {
       propertySize: "Tamaño de Propiedad",
       preferredDate: "Fecha Preferida",
       message: "Mensaje Adicional (Opcional)",
-      submit: "Obtener Cotización Gratuita"
+      submit: "Obtener Cotización Gratuita",
+      info: {
+        phone: "+1-240-355-3108",
+        email: "ascenciocleaning@gmail.com",
+        serviceArea: "Área DMV",
+        serviceAreaDetail: "DC, Maryland y Virginia"
+      }
     }
   }
 };
@@ -684,7 +696,7 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold text-slate-900">Phone</h4>
-                        <p className="text-slate-600">(555) 123-4567</p>
+                        <p className="text-slate-600">+1-240-355-3108</p>
                         <p className="text-sm text-slate-500">Available Mon-Sat, 8AM-6PM</p>
                       </div>
                     </div>
@@ -695,7 +707,7 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold text-slate-900">Email</h4>
-                        <p className="text-slate-600">info@ascenciocleaning.com</p>
+                        <p className="text-slate-600">ascenciocleaning@gmail.com</p>
                         <p className="text-sm text-slate-500">We'll respond within 24 hours</p>
                       </div>
                     </div>
@@ -706,8 +718,8 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold text-slate-900">Service Area</h4>
-                        <p className="text-slate-600">Greater Metro Area</p>
-                        <p className="text-sm text-slate-500">Free quotes within 30 miles</p>
+                        <p className="text-slate-600">DMV Area</p>
+                        <p className="text-sm text-slate-500">DC, Maryland & Virginia</p>
                       </div>
                     </div>
                   </div>
@@ -773,9 +785,9 @@ export default function HomePage() {
             <div>
               <h4 className="text-lg font-semibold mb-4">Contact</h4>
               <div className="space-y-2 text-slate-300">
-                <p>(555) 123-4567</p>
-                <p>info@ascenciocleaning.com</p>
-                <p>Greater Metro Area</p>
+                <p>+1-240-355-3108</p>
+                <p>ascenciocleaning@gmail.com</p>
+                <p>DMV Area (DC, MD, VA)</p>
               </div>
             </div>
           </div>
