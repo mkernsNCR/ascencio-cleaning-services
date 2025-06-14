@@ -697,7 +697,7 @@ export default function HomePage() {
                       <div>
                         <h4 className="font-semibold text-slate-900">Phone</h4>
                         <p className="text-slate-600">+1-240-355-3108</p>
-                        <p className="text-sm text-slate-500">Available Mon-Sat, 8AM-6PM</p>
+                        <p className="text-sm text-slate-500">Available Mon-Fri, 8AM-6PM</p>
                       </div>
                     </div>
                     
