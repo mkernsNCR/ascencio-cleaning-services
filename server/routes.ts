@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertContactRequestSchema, insertReviewSchema } from "@shared/schema";
 import { z } from "zod";
+import { sendReviewNotification, sendContactNotification } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get approved reviews
@@ -20,6 +21,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reviewData = insertReviewSchema.parse(req.body);
       const review = await storage.createReview(reviewData);
+      
+      // Send email notification
+      const emailSent = await sendReviewNotification(review);
+      if (!emailSent) {
+        console.warn('Failed to send review notification email');
+      }
+      
       res.status(201).json({ message: "Review submitted successfully. It will be published after moderation.", review });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -35,6 +43,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const contactData = insertContactRequestSchema.parse(req.body);
       const request = await storage.createContactRequest(contactData);
+      
+      // Send email notification
+      const emailSent = await sendContactNotification(request);
+      if (!emailSent) {
+        console.warn('Failed to send contact notification email');
+      }
+      
       res.status(201).json({ message: "Your request has been submitted successfully. We will contact you within 24 hours.", request });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -52,6 +67,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(requests);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch contact requests" });
+    }
+  });
+
+  // Approve review via email link
+  app.get("/api/reviews/:id/approve", async (req, res) => {
+    try {
+      const reviewId = parseInt(req.params.id);
+      const review = await storage.approveReview(reviewId);
+      
+      if (!review) {
+        return res.status(404).send(`
+          <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h2 style="color: #dc2626;">Review Not Found</h2>
+            <p>The review you're trying to approve could not be found.</p>
+          </body></html>
+        `);
+      }
+      
+      res.send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #16a34a;">✓ Review Approved!</h2>
+          <p>The review from <strong>${review.name}</strong> has been approved and is now live on your website.</p>
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px auto; max-width: 500px;">
+            <p><strong>Rating:</strong> ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)} (${review.rating}/5)</p>
+            <blockquote style="background: white; padding: 15px; border-left: 4px solid #1e40af; margin: 10px 0;">
+              ${review.review}
+            </blockquote>
+          </div>
+          <p><a href="/" style="color: #1e40af;">← Back to Website</a></p>
+        </body></html>
+      `);
+    } catch (error) {
+      res.status(500).send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #dc2626;">Error</h2>
+          <p>Failed to approve review. Please try again.</p>
+        </body></html>
+      `);
+    }
+  });
+
+  // Decline review via email link
+  app.get("/api/reviews/:id/decline", async (req, res) => {
+    try {
+      const reviewId = parseInt(req.params.id);
+      const success = await storage.deleteReview(reviewId);
+      
+      if (!success) {
+        return res.status(404).send(`
+          <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h2 style="color: #dc2626;">Review Not Found</h2>
+            <p>The review you're trying to decline could not be found.</p>
+          </body></html>
+        `);
+      }
+      
+      res.send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #dc2626;">✗ Review Declined</h2>
+          <p>The review has been declined and will not appear on your website.</p>
+          <p><a href="/" style="color: #1e40af;">← Back to Website</a></p>
+        </body></html>
+      `);
+    } catch (error) {
+      res.status(500).send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #dc2626;">Error</h2>
+          <p>Failed to decline review. Please try again.</p>
+        </body></html>
+      `);
     }
   });
 
