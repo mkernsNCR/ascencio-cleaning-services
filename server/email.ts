@@ -73,7 +73,7 @@ Once approved, the review will appear on your website.
 
     await mailService.send({
       to: BUSINESS_EMAIL,
-      from: 'noreply@ascenciocleaning.com', // SendGrid requires verified sender
+      from: BUSINESS_EMAIL, // Using verified Gmail address
       subject: `New Review: ${review.rating}⭐ from ${review.name}`,
       text: emailText,
       html: emailHtml,
