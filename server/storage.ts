@@ -22,6 +22,7 @@ export interface IStorage {
   getApprovedReviews(): Promise<Review[]>;
   getAllReviews(): Promise<Review[]>;
   approveReview(id: number): Promise<Review | undefined>;
+  deleteReview(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -91,7 +92,17 @@ export class MemStorage implements IStorage {
 
   async createContactRequest(insertRequest: InsertContactRequest): Promise<ContactRequest> {
     const id = this.currentContactRequestId++;
-    const request: ContactRequest = { ...insertRequest, id };
+    const request: ContactRequest = { 
+      id,
+      firstName: insertRequest.firstName,
+      lastName: insertRequest.lastName,
+      email: insertRequest.email,
+      phone: insertRequest.phone,
+      serviceType: insertRequest.serviceType,
+      propertySize: insertRequest.propertySize,
+      preferredDate: insertRequest.preferredDate,
+      message: insertRequest.message ?? null
+    };
     this.contactRequests.set(id, request);
     return request;
   }
@@ -122,6 +133,10 @@ export class MemStorage implements IStorage {
       this.reviews.set(id, review);
     }
     return review;
+  }
+
+  async deleteReview(id: number): Promise<boolean> {
+    return this.reviews.delete(id);
   }
 }
 
