@@ -151,6 +151,9 @@ export async function sendBookingNotification(booking: Booking): Promise<boolean
       return `$${(cents / 100).toFixed(2)}`;
     };
 
+    const approveUrl = `${BASE_URL}/api/bookings/${booking.id}/approve`;
+    const rejectUrl = `${BASE_URL}/api/bookings/${booking.id}/reject`;
+
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1e40af;">New Booking Request</h2>
@@ -169,14 +172,25 @@ export async function sendBookingNotification(booking: Booking): Promise<boolean
           ${booking.notes ? `<p><strong>Notes:</strong></p><blockquote style="background: white; padding: 15px; border-left: 4px solid #1e40af; margin: 10px 0;">${booking.notes}</blockquote>` : ''}
         </div>
         
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${approveUrl}" 
+             style="background: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 0 10px; display: inline-block;">
+            ✓ Approve Booking
+          </a>
+          <a href="${rejectUrl}" 
+             style="background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 0 10px; display: inline-block;">
+            ✗ Reject Booking
+          </a>
+        </div>
+        
         <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
           <p style="margin: 0; color: #92400e;">
-            <strong>⏰ Action Required:</strong> Please confirm this booking within 2 hours by contacting the customer.
+            <strong>⏰ Quick Action:</strong> Click the buttons above to approve or reject this booking instantly.
           </p>
         </div>
         
         <p style="color: #64748b; font-size: 14px; margin-top: 20px;">
-          Contact the customer to confirm the appointment and provide any additional details about the service.
+          Once approved, the customer will be automatically notified via email about the confirmed appointment.
         </p>
         
         <hr style="border: 1px solid #e2e8f0; margin: 20px 0;">
@@ -200,7 +214,11 @@ Duration: ${booking.duration} hours
 Estimated Price: ${formatPrice(booking.estimatedPrice || 0)}
 ${booking.notes ? `Notes: ${booking.notes}` : ''}
 
-Please confirm this booking within 2 hours by contacting the customer.
+Quick Actions:
+To approve this booking: ${approveUrl}
+To reject this booking: ${rejectUrl}
+
+Once approved, the customer will be automatically notified.
     `;
 
     await transporter.sendMail({
@@ -214,6 +232,164 @@ Please confirm this booking within 2 hours by contacting the customer.
     return true;
   } catch (error) {
     console.error('Failed to send booking notification:', error);
+    return false;
+  }
+}
+
+export async function sendBookingConfirmation(booking: Booking): Promise<boolean> {
+  try {
+    const formatPrice = (cents: number) => {
+      return `$${(cents / 100).toFixed(2)}`;
+    };
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #16a34a;">✓ Booking Confirmed!</h2>
+        
+        <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #16a34a;">
+          <h3 style="margin-top: 0; color: #16a34a;">Your Appointment is Confirmed</h3>
+          <p>Dear ${booking.firstName},</p>
+          <p>Great news! Your cleaning service appointment has been confirmed.</p>
+        </div>
+        
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Appointment Details</h3>
+          <p><strong>Service:</strong> ${booking.serviceType}</p>
+          <p><strong>Date & Time:</strong> ${booking.date} at ${booking.time}</p>
+          <p><strong>Duration:</strong> ${booking.duration} hours</p>
+          <p><strong>Address:</strong> ${booking.address}</p>
+          <p><strong>Property Size:</strong> ${booking.propertySize}</p>
+          <p><strong>Total Price:</strong> ${formatPrice(booking.estimatedPrice || 0)}</p>
+        </div>
+        
+        <div style="background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #1e40af;">
+          <p style="margin: 0; color: #1e40af;">
+            <strong>📞 Contact Information:</strong><br>
+            Phone: +1-240-355-3108<br>
+            Email: ascenciocleaning@gmail.com
+          </p>
+        </div>
+        
+        <p style="color: #64748b; font-size: 14px; margin-top: 20px;">
+          Our team will arrive at your scheduled time. If you need to reschedule or have any questions, please contact us at least 24 hours in advance.
+        </p>
+        
+        <hr style="border: 1px solid #e2e8f0; margin: 20px 0;">
+        <p style="color: #64748b; font-size: 12px;">
+          Thank you for choosing Ascencio Cleaning Services LLC
+        </p>
+      </div>
+    `;
+
+    const emailText = `
+Booking Confirmed!
+
+Dear ${booking.firstName},
+
+Your cleaning service appointment has been confirmed.
+
+Appointment Details:
+Service: ${booking.serviceType}
+Date & Time: ${booking.date} at ${booking.time}
+Duration: ${booking.duration} hours
+Address: ${booking.address}
+Property Size: ${booking.propertySize}
+Total Price: ${formatPrice(booking.estimatedPrice || 0)}
+
+Contact Information:
+Phone: +1-240-355-3108
+Email: ascenciocleaning@gmail.com
+
+Our team will arrive at your scheduled time. If you need to reschedule or have any questions, please contact us at least 24 hours in advance.
+
+Thank you for choosing Ascencio Cleaning Services LLC
+    `;
+
+    await transporter.sendMail({
+      to: booking.email,
+      from: BUSINESS_EMAIL,
+      subject: `Appointment Confirmed - ${booking.date} at ${booking.time}`,
+      text: emailText,
+      html: emailHtml,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to send booking confirmation:', error);
+    return false;
+  }
+}
+
+export async function sendBookingRejection(booking: Booking): Promise<boolean> {
+  try {
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc2626;">Booking Update</h2>
+        
+        <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+          <h3 style="margin-top: 0; color: #dc2626;">Appointment Not Available</h3>
+          <p>Dear ${booking.firstName},</p>
+          <p>Unfortunately, we are unable to confirm your cleaning service appointment for ${booking.date} at ${booking.time}.</p>
+        </div>
+        
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Original Request Details</h3>
+          <p><strong>Service:</strong> ${booking.serviceType}</p>
+          <p><strong>Date & Time:</strong> ${booking.date} at ${booking.time}</p>
+          <p><strong>Property Size:</strong> ${booking.propertySize}</p>
+        </div>
+        
+        <div style="background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #1e40af;">
+          <p style="margin: 0; color: #1e40af;">
+            <strong>📞 Let's Find Another Time:</strong><br>
+            Phone: +1-240-355-3108<br>
+            Email: ascenciocleaning@gmail.com
+          </p>
+        </div>
+        
+        <p style="color: #64748b; font-size: 14px; margin-top: 20px;">
+          Please contact us to schedule an alternative date and time. We have many available slots and would love to help you with your cleaning needs.
+        </p>
+        
+        <hr style="border: 1px solid #e2e8f0; margin: 20px 0;">
+        <p style="color: #64748b; font-size: 12px;">
+          Thank you for your interest in Ascencio Cleaning Services LLC
+        </p>
+      </div>
+    `;
+
+    const emailText = `
+Booking Update
+
+Dear ${booking.firstName},
+
+Unfortunately, we are unable to confirm your cleaning service appointment for ${booking.date} at ${booking.time}.
+
+Original Request Details:
+Service: ${booking.serviceType}
+Date & Time: ${booking.date} at ${booking.time}
+Property Size: ${booking.propertySize}
+
+Contact Information:
+Phone: +1-240-355-3108
+Email: ascenciocleaning@gmail.com
+
+Please contact us to schedule an alternative date and time. We have many available slots and would love to help you with your cleaning needs.
+
+Thank you for your interest in Ascencio Cleaning Services LLC
+    `;
+
+    await transporter.sendMail({
+      to: booking.email,
+      from: BUSINESS_EMAIL,
+      subject: `Booking Update - ${booking.date} at ${booking.time}`,
+      text: emailText,
+      html: emailHtml,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to send booking rejection:', error);
     return false;
   }
 }

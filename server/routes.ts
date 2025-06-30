@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertContactRequestSchema, insertReviewSchema, insertBookingSchema } from "@shared/schema";
 import { z } from "zod";
-import { sendReviewNotification, sendContactNotification, sendBookingNotification } from "./email";
+import { sendReviewNotification, sendContactNotification, sendBookingNotification, sendBookingConfirmation, sendBookingRejection } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get approved reviews
@@ -207,6 +207,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Booking status updated", booking });
     } catch (error) {
       res.status(500).json({ message: "Failed to update booking status" });
+    }
+  });
+
+  // Approve booking via email link
+  app.get("/api/bookings/:id/approve", async (req, res) => {
+    try {
+      const bookingId = parseInt(req.params.id);
+      const booking = await storage.updateBookingStatus(bookingId, 'confirmed');
+      
+      if (!booking) {
+        return res.send(`
+          <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h2 style="color: #dc2626;">Booking Not Found</h2>
+            <p>The booking you're trying to approve could not be found.</p>
+          </body></html>
+        `);
+      }
+      
+      // Send confirmation email to customer
+      const emailSent = await sendBookingConfirmation(booking);
+      if (!emailSent) {
+        console.warn('Failed to send booking confirmation email to customer');
+      }
+
+      res.send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #16a34a;">✓ Booking Approved</h2>
+          <p>The booking for <strong>${booking.firstName} ${booking.lastName}</strong> on <strong>${booking.date} at ${booking.time}</strong> has been confirmed.</p>
+          <p>Customer has been notified via email.</p>
+          <p><a href="/" style="color: #1e40af;">← Back to Website</a></p>
+        </body></html>
+      `);
+    } catch (error) {
+      res.status(500).send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #dc2626;">Error</h2>
+          <p>Failed to approve booking. Please try again.</p>
+        </body></html>
+      `);
+    }
+  });
+
+  // Reject booking via email link
+  app.get("/api/bookings/:id/reject", async (req, res) => {
+    try {
+      const bookingId = parseInt(req.params.id);
+      const booking = await storage.updateBookingStatus(bookingId, 'cancelled');
+      
+      if (!booking) {
+        return res.send(`
+          <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h2 style="color: #dc2626;">Booking Not Found</h2>
+            <p>The booking you're trying to reject could not be found.</p>
+          </body></html>
+        `);
+      }
+      
+      // Send rejection email to customer
+      const emailSent = await sendBookingRejection(booking);
+      if (!emailSent) {
+        console.warn('Failed to send booking rejection email to customer');
+      }
+
+      res.send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #dc2626;">✗ Booking Rejected</h2>
+          <p>The booking for <strong>${booking.firstName} ${booking.lastName}</strong> on <strong>${booking.date} at ${booking.time}</strong> has been cancelled.</p>
+          <p>Customer has been notified via email.</p>
+          <p><a href="/" style="color: #1e40af;">← Back to Website</a></p>
+        </body></html>
+      `);
+    } catch (error) {
+      res.status(500).send(`
+        <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #dc2626;">Error</h2>
+          <p>Failed to reject booking. Please try again.</p>
+        </body></html>
+      `);
     }
   });
 
