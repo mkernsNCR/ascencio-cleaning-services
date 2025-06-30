@@ -1,12 +1,14 @@
-import { MailService } from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import type { Review } from '../shared/schema';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
-
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+// Gmail SMTP configuration
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'ascenciocleaning@gmail.com',
+    pass: process.env.GMAIL_APP_PASSWORD || 'your-app-password-here'
+  }
+});
 
 const BUSINESS_EMAIL = 'ascenciocleaning@gmail.com';
 const BASE_URL = process.env.NODE_ENV === 'production' 
@@ -71,9 +73,9 @@ To decline this review, visit: ${declineUrl}
 Once approved, the review will appear on your website.
     `;
 
-    await mailService.send({
+    await transporter.sendMail({
       to: BUSINESS_EMAIL,
-      from: BUSINESS_EMAIL, // Using verified Gmail address
+      from: BUSINESS_EMAIL,
       subject: `New Review: ${review.rating}⭐ from ${review.name}`,
       text: emailText,
       html: emailHtml,
@@ -128,7 +130,7 @@ ${contact.message ? `Message: ${contact.message}` : ''}
 Contact this customer to schedule their cleaning service.
     `;
 
-    await mailService.send({
+    await transporter.sendMail({
       to: BUSINESS_EMAIL,
       from: BUSINESS_EMAIL,
       subject: `New Service Request from ${contact.firstName} ${contact.lastName}`,

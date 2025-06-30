@@ -1,47 +1,50 @@
-import { MailService } from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 
-async function testSendGridSetup() {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.log('❌ SENDGRID_API_KEY not found in environment variables');
+async function testGmailSetup() {
+  if (!process.env.GMAIL_APP_PASSWORD) {
+    console.log('❌ GMAIL_APP_PASSWORD not found in environment variables');
+    console.log('📝 You need to generate a Gmail App Password:');
+    console.log('1. Go to Google Account settings');
+    console.log('2. Enable 2-Factor Authentication');
+    console.log('3. Generate an App Password for Mail');
+    console.log('4. Add GMAIL_APP_PASSWORD to your environment');
     return;
   }
 
-  console.log('✅ SENDGRID_API_KEY found');
-  console.log('🔧 API Key format:', process.env.SENDGRID_API_KEY.substring(0, 8) + '...');
+  console.log('✅ GMAIL_APP_PASSWORD found');
 
-  const mailService = new MailService();
-  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'ascenciocleaning@gmail.com',
+      pass: process.env.GMAIL_APP_PASSWORD
+    }
+  });
 
   try {
-    const testEmail = {
+    console.log('📧 Attempting to send test email...');
+    
+    await transporter.sendMail({
       to: 'ascenciocleaning@gmail.com',
       from: 'ascenciocleaning@gmail.com',
-      subject: 'SendGrid Test Email',
-      text: 'This is a test email to verify SendGrid configuration.',
-      html: '<p>This is a test email to verify SendGrid configuration.</p>'
-    };
-
-    console.log('📧 Attempting to send test email...');
-    await mailService.send(testEmail);
-    console.log('✅ Test email sent successfully!');
+      subject: 'Gmail SMTP Test Email',
+      text: 'This is a test email to verify Gmail SMTP configuration.',
+      html: '<p><strong>Success!</strong> Gmail SMTP is working correctly.</p>'
+    });
+    
+    console.log('✅ Test email sent successfully via Gmail SMTP!');
   } catch (error: any) {
     console.log('❌ Email send failed:');
-    console.log('Error code:', error.code);
-    console.log('Error message:', error.message);
+    console.log('Error:', error.message);
     
-    if (error.response?.body?.errors) {
-      console.log('SendGrid errors:', error.response.body.errors);
-    }
-
-    // Common error explanations
-    if (error.code === 403) {
-      console.log('\n🔍 403 Forbidden usually means:');
-      console.log('1. API key lacks Mail Send permissions');
-      console.log('2. Sender email (ascenciocleaning@gmail.com) not verified in SendGrid');
-      console.log('3. API key is invalid or expired');
+    if (error.code === 'EAUTH') {
+      console.log('\n🔍 Authentication failed - this usually means:');
+      console.log('1. Gmail App Password is incorrect');
+      console.log('2. 2-Factor Authentication not enabled on Gmail');
+      console.log('3. App Password not generated properly');
     }
   }
 }
 
 // Run the test
-testSendGridSetup().catch(console.error);
+testGmailSetup().catch(console.error);
