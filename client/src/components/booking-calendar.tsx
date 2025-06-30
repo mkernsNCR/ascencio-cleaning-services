@@ -70,11 +70,13 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
   // Create booking mutation
   const createBookingMutation = useMutation({
     mutationFn: async (data: InsertBooking) => {
-      return apiRequest("/api/bookings", {
+      const response = await fetch("/api/bookings", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" }
       });
+      if (!response.ok) throw new Error('Failed to create booking');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
@@ -198,7 +200,7 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
             <div className="text-center py-4">Loading available times...</div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
-              {availability?.availableSlots?.map((time: string) => (
+              {(availability as any)?.availableSlots?.map((time: string) => (
                 <Button
                   key={time}
                   variant={selectedTime === time ? "default" : "outline"}
@@ -211,7 +213,7 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
             </div>
           )}
           
-          {availability?.availableSlots?.length === 0 && (
+          {(availability as any)?.availableSlots?.length === 0 && (
             <div className="text-center py-4 text-gray-500">
               No available times for this date
             </div>
