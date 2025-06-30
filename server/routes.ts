@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertContactRequestSchema, insertReviewSchema, insertBookingSchema } from "@shared/schema";
 import { z } from "zod";
-import { sendReviewNotification, sendContactNotification } from "./email";
+import { sendReviewNotification, sendContactNotification, sendBookingNotification } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get approved reviews
@@ -147,10 +147,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const booking = await storage.createBooking(bookingData);
       
       // Send email notification
-      // const emailSent = await sendBookingNotification(booking);
-      // if (!emailSent) {
-      //   console.warn('Failed to send booking notification email');
-      // }
+      const emailSent = await sendBookingNotification(booking);
+      if (!emailSent) {
+        console.warn('Failed to send booking notification email');
+      }
       
       res.status(201).json({ 
         message: "Booking submitted successfully. We'll confirm your appointment within 2 hours.", 
