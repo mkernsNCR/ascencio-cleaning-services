@@ -28,6 +28,7 @@ import { Carousel } from "@/components/carousel";
 import { StarRating } from "@/components/star-rating";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Link } from "wouter";
 import type { Review, InsertReview, InsertContactRequest } from "@shared/schema";
 
 // Language translations
@@ -316,7 +317,12 @@ export default function HomePage() {
                 <button onClick={() => scrollToSection("services")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">{t.nav.services}</button>
                 <button onClick={() => scrollToSection("gallery")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">{t.nav.gallery}</button>
                 <button onClick={() => scrollToSection("reviews")} className="text-slate-700 hover:text-primary px-3 py-2 text-sm font-medium transition-colors">{t.nav.reviews}</button>
-                <Button onClick={() => scrollToSection("contact")} className="bg-primary text-white hover:bg-blue-700">{t.nav.bookNow}</Button>
+                <Link href="/booking">
+                  <Button className="bg-primary text-white hover:bg-blue-700 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {t.nav.bookNow}
+                  </Button>
+                </Link>
               </div>
               <Button 
                 variant="outline" 
@@ -376,9 +382,15 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/booking">
+                  <Button className="w-full sm:w-auto bg-accent text-white hover:bg-yellow-500 px-8 py-4 text-lg font-semibold flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    {language === 'en' ? 'Book Now' : 'Reservar Ahora'}
+                  </Button>
+                </Link>
                 <Button 
                   onClick={() => scrollToSection("contact")} 
-                  className="bg-accent text-white hover:bg-yellow-500 px-8 py-4 text-lg font-semibold"
+                  className="bg-green-600 text-white hover:bg-green-700 px-8 py-4 text-lg font-semibold"
                 >
                   {t.hero.getQuote}
                 </Button>
