@@ -5,6 +5,24 @@ import { insertContactRequestSchema, insertReviewSchema, insertBookingSchema } f
 import { z } from "zod";
 import { sendReviewNotification, sendContactNotification, sendBookingNotification, sendBookingConfirmation, sendBookingRejection } from "./email";
 
+// Helper functions for formatting
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric'
+  });
+}
+
+function formatTime(timeString: string): string {
+  const [hours, minutes] = timeString.split(':');
+  const hour24 = parseInt(hours, 10);
+  const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+  const ampm = hour24 >= 12 ? 'PM' : 'AM';
+  return `${hour12}:${minutes} ${ampm}`;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get approved reviews
   app.get("/api/reviews", async (req, res) => {
@@ -234,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(`
         <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
           <h2 style="color: #16a34a;">✓ Booking Approved</h2>
-          <p>The booking for <strong>${booking.firstName} ${booking.lastName}</strong> on <strong>${booking.date} at ${booking.time}</strong> has been confirmed.</p>
+          <p>The booking for <strong>${booking.firstName} ${booking.lastName}</strong> on <strong>${formatDate(booking.date)} at ${formatTime(booking.time)}</strong> has been confirmed.</p>
           <p>Customer has been notified via email.</p>
           <p><a href="/" style="color: #1e40af;">← Back to Website</a></p>
         </body></html>

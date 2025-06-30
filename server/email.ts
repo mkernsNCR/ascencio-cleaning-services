@@ -351,13 +351,13 @@ export async function sendBookingRejection(booking: Booking): Promise<boolean> {
         <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
           <h3 style="margin-top: 0; color: #dc2626;">Appointment Not Available</h3>
           <p>Dear ${booking.firstName},</p>
-          <p>Unfortunately, we are unable to confirm your cleaning service appointment for ${formatDate(booking.date)} at ${booking.time}.</p>
+          <p>Unfortunately, we are unable to confirm your cleaning service appointment for ${formatDate(booking.date)} at ${formatTime(booking.time)}.</p>
         </div>
         
         <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Original Request Details</h3>
           <p><strong>Service:</strong> ${booking.serviceType}</p>
-          <p><strong>Date & Time:</strong> ${formatDate(booking.date)} at ${booking.time}</p>
+          <p><strong>Date & Time:</strong> ${formatDate(booking.date)} at ${formatTime(booking.time)}</p>
           <p><strong>Property Size:</strong> ${booking.propertySize}</p>
         </div>
         
@@ -385,11 +385,11 @@ Booking Update
 
 Dear ${booking.firstName},
 
-Unfortunately, we are unable to confirm your cleaning service appointment for ${formatDate(booking.date)} at ${booking.time}.
+Unfortunately, we are unable to confirm your cleaning service appointment for ${formatDate(booking.date)} at ${formatTime(booking.time)}.
 
 Original Request Details:
 Service: ${booking.serviceType}
-Date & Time: ${formatDate(booking.date)} at ${booking.time}
+Date & Time: ${formatDate(booking.date)} at ${formatTime(booking.time)}
 Property Size: ${booking.propertySize}
 
 Contact Information:
@@ -404,7 +404,7 @@ Thank you for your interest in Ascencio Cleaning Services LLC
     await transporter.sendMail({
       to: booking.email,
       from: BUSINESS_EMAIL,
-      subject: `Booking Update - ${formatDate(booking.date)} at ${booking.time}`,
+      subject: `Booking Update - ${formatDate(booking.date)} at ${formatTime(booking.time)}`,
       text: emailText,
       html: emailHtml,
     });
