@@ -2,12 +2,15 @@ import {
   users, 
   contactRequests,
   reviews,
+  bookings,
   type User, 
   type InsertUser,
   type ContactRequest,
   type InsertContactRequest,
   type Review,
-  type InsertReview
+  type InsertReview,
+  type Booking,
+  type InsertBooking
 } from "@shared/schema";
 
 export interface IStorage {
@@ -23,6 +26,12 @@ export interface IStorage {
   getAllReviews(): Promise<Review[]>;
   approveReview(id: number): Promise<Review | undefined>;
   deleteReview(id: number): Promise<boolean>;
+  
+  createBooking(booking: InsertBooking): Promise<Booking>;
+  getBookings(): Promise<Booking[]>;
+  getBookingsByDate(date: string): Promise<Booking[]>;
+  updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
+  getAvailableTimeSlots(date: string): Promise<string[]>;
 }
 
 export class MemStorage implements IStorage {
