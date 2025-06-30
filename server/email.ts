@@ -11,9 +11,12 @@ const transporter = nodemailer.createTransport({
 });
 
 const BUSINESS_EMAIL = 'ascenciocleaning@gmail.com';
-const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-  : 'http://localhost:5000';
+// Use Replit domain even in development so email links work
+const BASE_URL = process.env.REPLIT_DOMAINS 
+  ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+  : process.env.NODE_ENV === 'production' 
+    ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+    : 'http://localhost:5000';
 
 export async function sendReviewNotification(review: Review): Promise<boolean> {
   try {
