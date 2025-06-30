@@ -64,6 +64,13 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
   // Get available time slots for selected date
   const { data: availability, isLoading: loadingSlots } = useQuery({
     queryKey: ['/api/bookings/availability', selectedDate?.toISOString().split('T')[0]],
+    queryFn: async () => {
+      if (!selectedDate) return null;
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const response = await fetch(`/api/bookings/availability/${dateStr}`);
+      if (!response.ok) throw new Error('Failed to fetch availability');
+      return response.json();
+    },
     enabled: !!selectedDate && currentStep === 'time'
   });
 
@@ -198,9 +205,9 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
         <CardContent className="space-y-4">
           {loadingSlots ? (
             <div className="text-center py-4">Loading available times...</div>
-          ) : (
+          ) : availability?.availableSlots && availability.availableSlots.length > 0 ? (
             <div className="grid grid-cols-2 gap-2">
-              {(availability as any)?.availableSlots?.map((time: string) => (
+              {availability.availableSlots.map((time: string) => (
                 <Button
                   key={time}
                   variant={selectedTime === time ? "default" : "outline"}
@@ -211,13 +218,11 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
                 </Button>
               ))}
             </div>
-          )}
-          
-          {(availability as any)?.availableSlots?.length === 0 && (
+          ) : availability ? (
             <div className="text-center py-4 text-gray-500">
               No available times for this date
             </div>
-          )}
+          ) : null}
 
           <div className="flex gap-2 pt-4">
             <Button 
