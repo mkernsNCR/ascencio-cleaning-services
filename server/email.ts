@@ -114,7 +114,7 @@ export async function sendContactNotification(contact: any): Promise<boolean> {
           <p><strong>Phone:</strong> ${contact.phone}</p>
           <p><strong>Service Type:</strong> ${contact.serviceType}</p>
           <p><strong>Property Size:</strong> ${contact.propertySize}</p>
-          <p><strong>Preferred Date:</strong> ${contact.preferredDate}</p>
+          <p><strong>Preferred Date:</strong> ${contact.preferredDate ? formatDate(contact.preferredDate) : 'Not specified'}</p>
           ${contact.message ? `<p><strong>Message:</strong></p><blockquote style="background: white; padding: 15px; border-left: 4px solid #1e40af; margin: 10px 0;">${contact.message}</blockquote>` : ''}
         </div>
         
@@ -137,7 +137,7 @@ Email: ${contact.email}
 Phone: ${contact.phone}
 Service Type: ${contact.serviceType}
 Property Size: ${contact.propertySize}
-Preferred Date: ${contact.preferredDate}
+Preferred Date: ${contact.preferredDate ? formatDate(contact.preferredDate) : 'Not specified'}
 ${contact.message ? `Message: ${contact.message}` : ''}
 
 Contact this customer to schedule their cleaning service.
@@ -303,7 +303,7 @@ Your cleaning service appointment has been confirmed.
 
 Appointment Details:
 Service: ${booking.serviceType}
-Date & Time: ${booking.date} at ${booking.time}
+Date & Time: ${formatDate(booking.date)} at ${booking.time}
 Duration: ${booking.duration} hours
 Address: ${booking.address}
 Property Size: ${booking.propertySize}
@@ -321,7 +321,7 @@ Thank you for choosing Ascencio Cleaning Services LLC
     await transporter.sendMail({
       to: booking.email,
       from: BUSINESS_EMAIL,
-      subject: `Appointment Confirmed - ${booking.date} at ${booking.time}`,
+      subject: `Appointment Confirmed - ${formatDate(booking.date)} at ${booking.time}`,
       text: emailText,
       html: emailHtml,
     });
@@ -342,13 +342,13 @@ export async function sendBookingRejection(booking: Booking): Promise<boolean> {
         <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
           <h3 style="margin-top: 0; color: #dc2626;">Appointment Not Available</h3>
           <p>Dear ${booking.firstName},</p>
-          <p>Unfortunately, we are unable to confirm your cleaning service appointment for ${booking.date} at ${booking.time}.</p>
+          <p>Unfortunately, we are unable to confirm your cleaning service appointment for ${formatDate(booking.date)} at ${booking.time}.</p>
         </div>
         
         <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Original Request Details</h3>
           <p><strong>Service:</strong> ${booking.serviceType}</p>
-          <p><strong>Date & Time:</strong> ${booking.date} at ${booking.time}</p>
+          <p><strong>Date & Time:</strong> ${formatDate(booking.date)} at ${booking.time}</p>
           <p><strong>Property Size:</strong> ${booking.propertySize}</p>
         </div>
         
@@ -376,11 +376,11 @@ Booking Update
 
 Dear ${booking.firstName},
 
-Unfortunately, we are unable to confirm your cleaning service appointment for ${booking.date} at ${booking.time}.
+Unfortunately, we are unable to confirm your cleaning service appointment for ${formatDate(booking.date)} at ${booking.time}.
 
 Original Request Details:
 Service: ${booking.serviceType}
-Date & Time: ${booking.date} at ${booking.time}
+Date & Time: ${formatDate(booking.date)} at ${booking.time}
 Property Size: ${booking.propertySize}
 
 Contact Information:
@@ -395,7 +395,7 @@ Thank you for your interest in Ascencio Cleaning Services LLC
     await transporter.sendMail({
       to: booking.email,
       from: BUSINESS_EMAIL,
-      subject: `Booking Update - ${booking.date} at ${booking.time}`,
+      subject: `Booking Update - ${formatDate(booking.date)} at ${booking.time}`,
       text: emailText,
       html: emailHtml,
     });
