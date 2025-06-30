@@ -358,7 +358,12 @@ export default function HomePage() {
               <button onClick={() => scrollToSection("services")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">{t.nav.services}</button>
               <button onClick={() => scrollToSection("gallery")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">{t.nav.gallery}</button>
               <button onClick={() => scrollToSection("reviews")} className="block w-full text-left px-3 py-2 text-slate-700 hover:text-primary text-sm font-medium">{t.nav.reviews}</button>
-              <Button onClick={() => scrollToSection("contact")} className="block mx-3 mt-2 bg-primary text-white hover:bg-blue-700 w-auto">{t.nav.bookNow}</Button>
+              <Link href="/booking">
+                <Button className="block mx-3 mt-2 bg-primary text-white hover:bg-blue-700 w-auto flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {t.nav.bookNow}
+                </Button>
+              </Link>
             </div>
           </div>
         )}
