@@ -115,6 +115,14 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
     });
   };
 
+  const formatTime = (timeString: string) => {
+    const [hours, minutes] = timeString.split(':');
+    const hour24 = parseInt(hours, 10);
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
   const handleServiceChange = (serviceType: string) => {
     const service = serviceTypes.find(s => s.name === serviceType);
     setFormData(prev => ({
@@ -214,7 +222,7 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
                   onClick={() => setSelectedTime(time)}
                   className="text-sm"
                 >
-                  {time}
+                  {formatTime(time)}
                 </Button>
               ))}
             </div>
@@ -252,7 +260,7 @@ export function BookingCalendar({ onBookingComplete }: BookingCalendarProps) {
       <CardHeader>
         <CardTitle>Booking Details</CardTitle>
         <CardDescription>
-          {selectedDate && formatDate(selectedDate)} at {selectedTime}
+          {selectedDate && formatDate(selectedDate)} at {selectedTime && formatTime(selectedTime)}
         </CardDescription>
       </CardHeader>
       <CardContent>
