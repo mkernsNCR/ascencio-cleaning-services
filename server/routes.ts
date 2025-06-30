@@ -291,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(`
         <html><body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
           <h2 style="color: #dc2626;">✗ Booking Rejected</h2>
-          <p>The booking for <strong>${booking.firstName} ${booking.lastName}</strong> on <strong>${booking.date} at ${booking.time}</strong> has been cancelled.</p>
+          <p>The booking for <strong>${booking.firstName} ${booking.lastName}</strong> on <strong>${formatDate(booking.date)} at ${formatTime(booking.time)}</strong> has been cancelled.</p>
           <p>Customer has been notified via email.</p>
           <p><a href="/" style="color: #1e40af;">← Back to Website</a></p>
         </body></html>
