@@ -28,6 +28,15 @@ function formatDate(dateString: string): string {
   });
 }
 
+// Helper function to format time as 12-hour format (AM/PM)
+function formatTime(timeString: string): string {
+  const [hours, minutes] = timeString.split(':');
+  const hour24 = parseInt(hours, 10);
+  const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+  const ampm = hour24 >= 12 ? 'PM' : 'AM';
+  return `${hour12}:${minutes} ${ampm}`;
+}
+
 export async function sendReviewNotification(review: Review): Promise<boolean> {
   try {
     const approveUrl = `${BASE_URL}/api/reviews/${review.id}/approve`;
@@ -179,7 +188,7 @@ export async function sendBookingNotification(booking: Booking): Promise<boolean
           <p><strong>Service:</strong> ${booking.serviceType}</p>
           <p><strong>Property Size:</strong> ${booking.propertySize}</p>
           <p><strong>Address:</strong> ${booking.address}</p>
-          <p><strong>Date & Time:</strong> ${formatDate(booking.date)} at ${booking.time}</p>
+          <p><strong>Date & Time:</strong> ${formatDate(booking.date)} at ${formatTime(booking.time)}</p>
           <p><strong>Duration:</strong> ${booking.duration} hours</p>
           <p><strong>Estimated Price:</strong> ${formatPrice(booking.estimatedPrice || 0)}</p>
           ${booking.notes ? `<p><strong>Notes:</strong></p><blockquote style="background: white; padding: 15px; border-left: 4px solid #1e40af; margin: 10px 0;">${booking.notes}</blockquote>` : ''}
@@ -222,7 +231,7 @@ Phone: ${booking.phone}
 Service: ${booking.serviceType}
 Property Size: ${booking.propertySize}
 Address: ${booking.address}
-Date & Time: ${formatDate(booking.date)} at ${booking.time}
+Date & Time: ${formatDate(booking.date)} at ${formatTime(booking.time)}
 Duration: ${booking.duration} hours
 Estimated Price: ${formatPrice(booking.estimatedPrice || 0)}
 ${booking.notes ? `Notes: ${booking.notes}` : ''}
@@ -237,7 +246,7 @@ Once approved, the customer will be automatically notified.
     await transporter.sendMail({
       to: BUSINESS_EMAIL,
       from: BUSINESS_EMAIL,
-      subject: `New Booking: ${formatDate(booking.date)} at ${booking.time} - ${booking.firstName} ${booking.lastName}`,
+      subject: `New Booking: ${formatDate(booking.date)} at ${formatTime(booking.time)} - ${booking.firstName} ${booking.lastName}`,
       text: emailText,
       html: emailHtml,
     });
@@ -268,7 +277,7 @@ export async function sendBookingConfirmation(booking: Booking): Promise<boolean
         <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Appointment Details</h3>
           <p><strong>Service:</strong> ${booking.serviceType}</p>
-          <p><strong>Date & Time:</strong> ${formatDate(booking.date)} at ${booking.time}</p>
+          <p><strong>Date & Time:</strong> ${formatDate(booking.date)} at ${formatTime(booking.time)}</p>
           <p><strong>Duration:</strong> ${booking.duration} hours</p>
           <p><strong>Address:</strong> ${booking.address}</p>
           <p><strong>Property Size:</strong> ${booking.propertySize}</p>
@@ -303,7 +312,7 @@ Your cleaning service appointment has been confirmed.
 
 Appointment Details:
 Service: ${booking.serviceType}
-Date & Time: ${formatDate(booking.date)} at ${booking.time}
+Date & Time: ${formatDate(booking.date)} at ${formatTime(booking.time)}
 Duration: ${booking.duration} hours
 Address: ${booking.address}
 Property Size: ${booking.propertySize}
@@ -321,7 +330,7 @@ Thank you for choosing Ascencio Cleaning Services LLC
     await transporter.sendMail({
       to: booking.email,
       from: BUSINESS_EMAIL,
-      subject: `Appointment Confirmed - ${formatDate(booking.date)} at ${booking.time}`,
+      subject: `Appointment Confirmed - ${formatDate(booking.date)} at ${formatTime(booking.time)}`,
       text: emailText,
       html: emailHtml,
     });
