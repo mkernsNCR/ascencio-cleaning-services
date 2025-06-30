@@ -147,9 +147,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const booking = await storage.createBooking(bookingData);
       
       // Send email notification
+      console.log('Sending booking notification email...');
       const emailSent = await sendBookingNotification(booking);
-      if (!emailSent) {
-        console.warn('Failed to send booking notification email');
+      if (emailSent) {
+        console.log('✅ Booking notification email sent successfully');
+      } else {
+        console.warn('❌ Failed to send booking notification email');
       }
       
       res.status(201).json({ 
