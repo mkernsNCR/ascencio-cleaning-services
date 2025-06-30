@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactRequestSchema, insertReviewSchema } from "@shared/schema";
+import { insertContactRequestSchema, insertReviewSchema, insertBookingSchema } from "@shared/schema";
 import { z } from "zod";
 import { sendReviewNotification, sendContactNotification } from "./email";
 
@@ -137,6 +137,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <p>Failed to decline review. Please try again.</p>
         </body></html>
       `);
+    }
+  });
+
+  // Create a new booking
+  app.post("/api/bookings", async (req, res) => {
+    try {
+      const bookingData = insertBookingSchema.parse(req.body);
+      const booking = await storage.createBooking(bookingData);
+      
+      // Send email notification
+      // const emailSent = await sendBookingNotification(booking);
+      // if (!emailSent) {
+      //   console.warn('Failed to send booking notification email');
+      // }
+      
+      res.status(201).json({ 
+        message: "Booking submitted successfully. We'll confirm your appointment within 2 hours.", 
+        booking 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid booking data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create booking" });
+      }
+    }
+  });
+
+  // Get available time slots for a specific date
+  app.get("/api/bookings/availability/:date", async (req, res) => {
+    try {
+      const date = req.params.date;
+      const availableSlots = await storage.getAvailableTimeSlots(date);
+      res.json({ date, availableSlots });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch availability" });
+    }
+  });
+
+  // Get all bookings (admin use)
+  app.get("/api/bookings", async (req, res) => {
+    try {
+      const bookings = await storage.getBookings();
+      res.json(bookings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
+  // Update booking status (confirm/cancel)
+  app.patch("/api/bookings/:id/status", async (req, res) => {
+    try {
+      const bookingId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const booking = await storage.updateBookingStatus(bookingId, status);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      res.json({ message: "Booking status updated", booking });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update booking status" });
     }
   });
 

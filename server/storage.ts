@@ -38,17 +38,21 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private contactRequests: Map<number, ContactRequest>;
   private reviews: Map<number, Review>;
+  private bookings: Map<number, Booking>;
   private currentUserId: number;
   private currentContactRequestId: number;
   private currentReviewId: number;
+  private currentBookingId: number;
 
   constructor() {
     this.users = new Map();
     this.contactRequests = new Map();
     this.reviews = new Map();
+    this.bookings = new Map();
     this.currentUserId = 1;
     this.currentContactRequestId = 1;
     this.currentReviewId = 1;
+    this.currentBookingId = 1;
     
     // Add some sample approved reviews
     this.createReview({
@@ -146,6 +150,60 @@ export class MemStorage implements IStorage {
 
   async deleteReview(id: number): Promise<boolean> {
     return this.reviews.delete(id);
+  }
+
+  async createBooking(insertBooking: InsertBooking): Promise<Booking> {
+    const id = this.currentBookingId++;
+    const booking: Booking = { 
+      id,
+      firstName: insertBooking.firstName,
+      lastName: insertBooking.lastName,
+      email: insertBooking.email,
+      phone: insertBooking.phone,
+      serviceType: insertBooking.serviceType,
+      propertySize: insertBooking.propertySize,
+      address: insertBooking.address,
+      date: insertBooking.date,
+      time: insertBooking.time,
+      duration: insertBooking.duration,
+      estimatedPrice: insertBooking.estimatedPrice,
+      notes: insertBooking.notes ?? null,
+      status: 'pending',
+      createdAt: new Date()
+    };
+    this.bookings.set(id, booking);
+    return booking;
+  }
+
+  async getBookings(): Promise<Booking[]> {
+    return Array.from(this.bookings.values());
+  }
+
+  async getBookingsByDate(date: string): Promise<Booking[]> {
+    return Array.from(this.bookings.values()).filter(booking => 
+      booking.date === date && booking.status !== 'cancelled'
+    );
+  }
+
+  async updateBookingStatus(id: number, status: string): Promise<Booking | undefined> {
+    const booking = this.bookings.get(id);
+    if (booking) {
+      booking.status = status;
+      this.bookings.set(id, booking);
+    }
+    return booking;
+  }
+
+  async getAvailableTimeSlots(date: string): Promise<string[]> {
+    const allTimeSlots = [
+      '08:00', '09:00', '10:00', '11:00', '12:00', 
+      '13:00', '14:00', '15:00', '16:00', '17:00'
+    ];
+    
+    const bookedSlots = await this.getBookingsByDate(date);
+    const bookedTimes = bookedSlots.map(booking => booking.time);
+    
+    return allTimeSlots.filter(slot => !bookedTimes.includes(slot));
   }
 }
 

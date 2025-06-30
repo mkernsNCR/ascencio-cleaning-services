@@ -64,6 +64,7 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
 export const insertBookingSchema = createInsertSchema(bookings).omit({
   id: true,
   createdAt: true,
+  status: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
