@@ -109,6 +109,7 @@ This is a modern full-stack web application for Ascencio Cleaning Services LLC, 
 ```
 Changelog:
 - June 14, 2025. Initial setup
+- June 30, 2025. Added complete booking system with email approval/rejection workflow
 ```
 
 ## User Preferences
