@@ -15,7 +15,12 @@ import { isNull } from "drizzle-orm";
 export async function bootstrap(config: AppConfig = loadConfig()): Promise<AppContext> {
   const log = createLogger(config.env === "test");
   const pool = createPool(config.databaseUrl);
-  await runMigrations(pool, undefined, (m) => log.info(m));
+  // Publish applies the managed production schema before starting the app.
+  // Its schema diff does not copy our development migration-history rows.
+  // Replaying the SQL here would try to recreate tables Publish already created.
+  if (!config.production) {
+    await runMigrations(pool, undefined, (m) => log.info(m));
+  }
   const db = createDb(pool);
   await ensureDefaults(db);
   await reportSafeguards(await ensureSafeguards(pool), log);

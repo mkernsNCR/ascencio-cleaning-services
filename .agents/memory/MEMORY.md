@@ -1,0 +1,1 @@
+- [Publish schema limits](publish-schema-limits.md) — schema-only publishing omitted migration history, custom exclusion constraints, and triggers; verify live invariants separately.

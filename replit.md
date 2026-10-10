@@ -85,7 +85,10 @@ DATABASE_URL=postgres://localhost/ascencio_dev npm run dev
 DATABASE_URL=postgres://localhost/ascencio_dev npm run staff:create -- owner@example.com "Owner Name"
 ```
 
-Migrations run automatically on startup (`npm run db:migrate` runs them manually). In development
+Migrations run automatically on development/test startup (`npm run db:migrate` runs them manually
+against development). Production startup does not run SQL migrations: Replit Publish applies the
+managed production schema before the server starts. Do not run `db:migrate` against production.
+In development
 the calendar defaults to an in-memory **fake** and email to the **log** transport — nothing real is
 booked or sent. `npm run seed:demo` adds clearly flagged demo reviews (never shown in production).
 
