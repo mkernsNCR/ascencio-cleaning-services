@@ -13,7 +13,7 @@ import { completeBooking, getBooking, rejectBooking, requestApproval } from "../
 import { moderateReview } from "../../modules/inquiries";
 import { getActivePricing, getSettings, listPricingVersions } from "../../modules/settings/repository";
 import { businessSettingsSchema, pricingRulesSchema, resourceSchema } from "../../modules/settings/validation";
-import { runOneJob } from "../../jobs/worker";
+import { runJobNowOrWait } from "../../jobs/worker";
 import { enqueueJob } from "../../jobs/queue";
 import { asyncHandler, ensureCsrfToken, limiter, requireCsrf, requireStaff } from "../middleware";
 import { decisionOutcome } from "./actions";
@@ -106,7 +106,7 @@ export function adminRoutes(ctx: AppContext) {
     const { version } = versionBody.parse(req.body);
     const id = z.string().uuid().parse(req.params.id);
     const { jobId } = await requestApproval(ctx, { bookingId: id, version, actor: { kind: "staff", id: req.staff!.id } });
-    if (jobId) await runOneJob(ctx, jobId).catch((error) => ctx.log.warn("inline confirm attempt failed", { error }));
+    if (jobId) await runJobNowOrWait(ctx, jobId);
     const b = await getBooking(ctx.db, id);
     res.json({ outcome: decisionOutcome(b!), booking: b });
   }));

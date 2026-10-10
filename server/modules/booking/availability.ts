@@ -201,8 +201,13 @@ export async function loadSchedulableResources(
       calendarProblem = true;
       continue; // fail closed for this resource only
     }
-    const filtered = ownEvent ? subtractInterval(busy, ownEvent) : busy;
-    out.push({ resource, local: local.get(resource.id) ?? [], external: filtered });
+    // Our own confirmed bookings appear in Google too (as events spanning service + buffer). They are
+    // already enforced by local reservations, so remove them from the external list; otherwise the
+    // external padding would apply the buffer twice.
+    const localIntervals = local.get(resource.id) ?? [];
+    let filtered = ownEvent ? subtractInterval(busy, ownEvent) : busy;
+    for (const own of localIntervals) filtered = subtractInterval(filtered, own);
+    out.push({ resource, local: localIntervals, external: filtered });
   }
   return { resources: out, calendarProblem };
 }

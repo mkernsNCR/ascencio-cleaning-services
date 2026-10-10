@@ -10,7 +10,7 @@ import { AppError, badRequest, conflict } from "../../lib/errors";
 import { consumeToken, lookupToken } from "../../modules/tokens";
 import { getBooking, rejectBooking, requestApproval } from "../../modules/booking/service";
 import { moderateReview } from "../../modules/inquiries";
-import { runOneJob } from "../../jobs/worker";
+import { runJobNowOrWait } from "../../jobs/worker";
 import { asyncHandler, bearerToken, limiter } from "../middleware";
 
 export function decisionOutcome(b: { status: string; calendarStatus: string }) {
@@ -93,7 +93,7 @@ export function actionRoutes(ctx: AppContext) {
       return res.json({ outcome: decisionOutcome(b) });
     }
     const { jobId } = await requestApproval(ctx, { bookingId: lookup.subjectId, version: input.version, actor, tokenId: lookup.id });
-    if (jobId) await runOneJob(ctx, jobId).catch((error) => ctx.log.warn("inline confirm attempt failed", { error }));
+    if (jobId) await runJobNowOrWait(ctx, jobId);
     const b = await getBooking(ctx.db, lookup.subjectId);
     res.json({ outcome: decisionOutcome(b!) });
   }));

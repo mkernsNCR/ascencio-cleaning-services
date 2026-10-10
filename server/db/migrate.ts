@@ -2,7 +2,10 @@ import fs from "fs";
 import path from "path";
 import type pg from "pg";
 
-const MIGRATIONS_DIR = path.resolve(import.meta.dirname, "..", "..", "migrations");
+// Works from source (server/db/) and from the bundled server (dist/).
+const MIGRATIONS_DIR =
+  [path.resolve(import.meta.dirname, "..", "..", "migrations"), path.resolve(import.meta.dirname, "..", "migrations")]
+    .find((dir) => fs.existsSync(dir)) ?? path.resolve(process.cwd(), "migrations");
 
 /**
  * Applies pending SQL migrations in filename order, each in its own transaction.

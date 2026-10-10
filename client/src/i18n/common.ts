@@ -1,0 +1,113 @@
+// Shared UI strings used across the public site. Feature-specific copy lives with each feature.
+// Spanish copy is a proposed translation and should be reviewed by a native speaker before launch.
+
+const en = {
+  skipToContent: "Skip to main content",
+  nav: {
+    label: "Main",
+    services: "Services",
+    commercial: "Commercial",
+    ourWork: "Our Work",
+    about: "About",
+    contact: "Contact",
+    serviceAreas: "Service areas",
+    menu: "Menu",
+    closeMenu: "Close menu",
+    home: "Ascencio Cleaning home",
+  },
+  cta: {
+    checkAvailability: "Check availability",
+    requestQuote: "Request a commercial quote",
+    call: "Call",
+  },
+  language: {
+    label: "Language",
+    switchTo: "Español",
+    switchToLabel: "Cambiar a español",
+  },
+  footer: {
+    tagline: "Bilingual home and workplace cleaning in Washington, DC, Maryland, and Virginia.",
+    contact: "Contact",
+    explore: "Explore",
+    policies: "Policies",
+    privacy: "Privacy",
+    terms: "Scheduling terms",
+    hours: "Hours",
+    coverage: "Service area",
+    coverageValue: "Washington, DC, Maryland, and Virginia",
+    closed: "Closed",
+    rights: "All rights reserved.",
+    bilingual: "Service in English and Spanish",
+  },
+  days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  errors: {
+    network: "We couldn't reach the server. Check your connection and try again.",
+    generic: "Something went wrong. Please try again.",
+    rateLimited: "Too many attempts. Please wait a moment and try again.",
+    retry: "Try again",
+    required: "This field is required.",
+    invalid_phone: "Enter a valid U.S. phone number.",
+    invalid_postal_code: "Enter a 5-digit ZIP code.",
+    invalid_email: "Enter a valid email address.",
+    fixFields: "Please correct the highlighted fields.",
+  },
+  loading: "Loading…",
+  optional: "optional",
+};
+
+const es: typeof en = {
+  skipToContent: "Saltar al contenido principal",
+  nav: {
+    label: "Principal",
+    services: "Servicios",
+    commercial: "Comercial",
+    ourWork: "Nuestro trabajo",
+    about: "Nosotros",
+    contact: "Contacto",
+    serviceAreas: "Áreas de servicio",
+    menu: "Menú",
+    closeMenu: "Cerrar menú",
+    home: "Inicio de Ascencio Cleaning",
+  },
+  cta: {
+    checkAvailability: "Ver disponibilidad",
+    requestQuote: "Solicitar cotización comercial",
+    call: "Llamar",
+  },
+  language: {
+    label: "Idioma",
+    switchTo: "English",
+    switchToLabel: "Switch to English",
+  },
+  footer: {
+    tagline: "Limpieza bilingüe de hogares y lugares de trabajo en Washington, DC, Maryland y Virginia.",
+    contact: "Contacto",
+    explore: "Explorar",
+    policies: "Políticas",
+    privacy: "Privacidad",
+    terms: "Términos de programación",
+    hours: "Horario",
+    coverage: "Área de servicio",
+    coverageValue: "Washington, DC, Maryland y Virginia",
+    closed: "Cerrado",
+    rights: "Todos los derechos reservados.",
+    bilingual: "Atención en inglés y español",
+  },
+  days: ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+  errors: {
+    network: "No pudimos conectar con el servidor. Revise su conexión e intente de nuevo.",
+    generic: "Algo salió mal. Por favor intente de nuevo.",
+    rateLimited: "Demasiados intentos. Espere un momento e intente de nuevo.",
+    retry: "Intentar de nuevo",
+    required: "Este campo es obligatorio.",
+    invalid_phone: "Ingrese un número de teléfono válido de EE. UU.",
+    invalid_postal_code: "Ingrese un código postal de 5 dígitos.",
+    invalid_email: "Ingrese un correo electrónico válido.",
+    fixFields: "Corrija los campos señalados.",
+  },
+  loading: "Cargando…",
+  optional: "opcional",
+};
+
+export const commonMessages = { en, es };
+export type CommonMessages = typeof en;

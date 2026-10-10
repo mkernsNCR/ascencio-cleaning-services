@@ -15,7 +15,7 @@ import {
   cancelByCustomer, createBookingRequest, presentManagedBooking, rescheduleByCustomer, resolveManageToken,
 } from "../../modules/booking/service";
 import { createContactRequest, createReview, publicReviews } from "../../modules/inquiries";
-import { runOneJob } from "../../jobs/worker";
+import { runJobNowOrWait } from "../../jobs/worker";
 import { jobs } from "../../db/schema";
 import { asyncHandler, bearerToken, limiter } from "../middleware";
 
@@ -129,7 +129,7 @@ export function publicRoutes(ctx: AppContext) {
       // Try to resolve the calendar move now so the customer sees the outcome; otherwise it stays "processing".
       const key = `reschedule:${updated.id}:${updated.version}:${updated.pendingChange.reservationId}`;
       const [job] = await ctx.db.select({ id: jobs.id }).from(jobs).where(eq(jobs.uniqueKey, key));
-      if (job) await runOneJob(ctx, job.id).catch((error) => ctx.log.warn("inline reschedule attempt failed", { error }));
+      if (job) await runJobNowOrWait(ctx, job.id);
       updated = (await resolveManageToken(ctx, bearerToken(req)));
     }
     res.json(await presentManagedBooking(ctx, updated));

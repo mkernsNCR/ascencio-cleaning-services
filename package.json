@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "vite build && vite build --ssr client/src/entry-server.tsx --outDir dist/ssr && tsx scripts/prerender.ts && esbuild server/index.ts server/worker.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "vite build && vite build --ssr src/entry-server.tsx --outDir ../dist/ssr && tsx scripts/prerender.ts && esbuild server/index.ts server/worker.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "worker": "NODE_ENV=production node dist/worker.js",
     "check": "tsc",
@@ -14,7 +14,8 @@
     "db:migrate": "tsx server/scripts/migrate.ts",
     "staff:create": "tsx server/scripts/create-staff.ts",
     "seed:demo": "tsx server/scripts/seed-demo.ts",
-    "mail:test": "tsx server/scripts/test-mail.ts"
+    "mail:test": "tsx server/scripts/test-mail.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
@@ -91,6 +92,8 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
     "@replit/vite-plugin-cartographer": "^0.2.7",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
@@ -120,5 +123,8 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "overrides": {
+    "playwright-core": "1.62.1"
   }
 }

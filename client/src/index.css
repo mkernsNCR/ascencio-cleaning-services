@@ -1,51 +1,46 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens. Warm ivory surfaces, deep forest green, charcoal text, brass accent.
+ * Brass (--accent) is decorative: never use it for small text on light surfaces.
+ * Contrast (WCAG): text/background 13.9:1, primary/white 9.3:1, muted/background 6.6:1,
+ * brass on primary 4.8:1 (large or bold text only).
+ */
 :root {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(142, 76%, 36%);
-  --secondary-foreground: hsl(211, 100%, 99%);
-  --accent: hsl(45, 93%, 47%);
-  --accent-foreground: hsl(211, 100%, 99%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
-  --radius: 0.5rem;
-}
-
-.dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(142, 76%, 36%);
-  --secondary-foreground: hsl(211, 100%, 99%);
-  --accent: hsl(45, 93%, 47%);
-  --accent-foreground: hsl(211, 100%, 99%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
-  --radius: 0.5rem;
+  --background: #f7f6f0;
+  --foreground: #182b25;
+  --surface: #ffffff;
+  --surface-sunken: #efede4;
+  --muted: #efede4;
+  --muted-foreground: #4a5c55;
+  --card: #ffffff;
+  --card-foreground: #182b25;
+  --popover: #ffffff;
+  --popover-foreground: #182b25;
+  --primary: #214f42;
+  --primary-hover: #1a4036;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e3ece7;
+  --secondary: #e3ece7;
+  --secondary-foreground: #182b25;
+  --accent: #d8b66a;
+  --accent-foreground: #182b25;
+  --border: #dce3dd;
+  --input: #b9c6bf;
+  --ring: #214f42;
+  --destructive: #a3261b;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #fbeae8;
+  --success: #1f6b3a;
+  --success-soft: #e5f2e9;
+  --warning: #7a5200;
+  --warning-soft: #fbf1dc;
+  --radius: 0.75rem;
 }
 
 @layer base {
@@ -53,11 +48,78 @@
     @apply border-border;
   }
 
-  body {
-    @apply font-sans antialiased bg-background text-foreground;
+  html {
+    -webkit-text-size-adjust: 100%;
   }
 
-  html {
-    scroll-behavior: smooth;
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3 {
+    @apply font-display text-foreground;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .eyebrow {
+    @apply text-sm font-semibold uppercase tracking-[0.12em] text-primary;
+  }
+
+  .text-display-xl {
+    font-size: clamp(2.25rem, 1.6rem + 3vw, 3.75rem);
+  }
+
+  .text-display-lg {
+    font-size: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
+  }
+
+  .text-display-md {
+    font-size: clamp(1.5rem, 1.25rem + 1vw, 2rem);
+  }
+
+  .prose-page {
+    @apply max-w-prose text-base leading-7 text-foreground;
+  }
+  .prose-page h2 {
+    @apply mt-10 mb-3 text-display-md;
+  }
+  .prose-page p, .prose-page ul {
+    @apply mb-4;
+  }
+  .prose-page ul {
+    @apply list-disc pl-6;
+  }
+
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    @apply sr-only;
   }
 }

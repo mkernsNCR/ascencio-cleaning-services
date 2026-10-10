@@ -78,6 +78,15 @@ describe("owner approval via email link", () => {
     expect(reminder.nextAttemptAt.toISOString()).toBe("2026-10-13T12:00:00.000Z");
   });
 
+  it("applies the buffer once after a booking is confirmed (event and reservation are not double-counted)", async () => {
+    await confirmBooking(); // Wed 08:00–11:00, event and reservation span 08:00–11:30
+    clearFreeBusyCache();
+    const res = await app(ctx).get("/api/availability?serviceId=standard&bedrooms=1&bathrooms=1&postalCode=20001&from=2026-10-14&to=2026-10-14");
+    const times = res.body.days[0].slots.map((s: any) => s.localTime);
+    expect(times[0]).toBe("11:30");
+    await app(ctx).post("/api/bookings").send(bookingBody({ start: "2026-10-14T15:30:00.000Z", email: "next@example.test" })).expect(201);
+  });
+
   it("rejects a replayed link and keeps a single event on repeated approval", async () => {
     await requestBooking();
     const token = await decisionToken();

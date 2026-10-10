@@ -72,6 +72,25 @@ async function runHandler(ctx: AppContext, job: JobRow): Promise<void> {
   }
 }
 
+/**
+ * Runs a specific job now for a responsive request/response, or — if another worker already claimed
+ * it — waits briefly for that run to finish. Returns without error either way; callers re-read state.
+ */
+export async function runJobNowOrWait(ctx: AppContext, jobId: number, timeoutMs = 8_000) {
+  try {
+    if (await runOneJob(ctx, jobId)) return;
+  } catch (error) {
+    ctx.log.warn("inline job attempt failed", { jobId, error });
+    return;
+  }
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const [job] = await ctx.db.select({ status: jobs.status }).from(jobs).where(eq(jobs.id, jobId));
+    if (!job || job.status !== "running") return;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+}
+
 /** Runs one claimed job and records the outcome. Returns false when nothing was available. */
 export async function runOneJob(ctx: AppContext, specificId?: number): Promise<boolean> {
   const job = await claimJob(ctx, specificId);
