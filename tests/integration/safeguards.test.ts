@@ -1,9 +1,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
-import { app, bookingBody, createTestContext, resetDatabase, staffAgent, type TestContext } from "../helpers";
+import { app, bookingBody, createTestContext, latestTokenFromOutbox, resetDatabase, staffAgent, type TestContext } from "../helpers";
 import { bookings, reservations } from "../../server/db/schema";
 import { runMigrations } from "../../server/db/migrate";
-import { ensureSafeguards, missingCriticalSafeguards, resetSafeguardCache } from "../../server/db/safeguards";
+import { bookingSafeguardsHealthy, ensureSafeguards, missingCriticalSafeguards, resetSafeguardCache } from "../../server/db/safeguards";
 import { FakeCalendarGateway } from "../../server/integrations/google-calendar/fake";
 
 let ctx: TestContext;
@@ -98,5 +98,83 @@ describe("database safeguards", () => {
     const { agent } = await staffAgent(ctx);
     const overview = await agent.get("/api/admin/overview").expect(200);
     expect(overview.body.launchChecklist.databaseSafeguardsMissing).toEqual(["reservations_no_overlap"]);
+  });
+});
+
+describe("writes re-verify safeguards instead of trusting the cached health check", () => {
+  it("relies on PostgreSQL blocking a constraint drop while a reservation write is uncommitted", async () => {
+    await app(ctx).post("/api/bookings").send(bookingBody()).expect(201);
+    const [b] = await ctx.db.select().from(bookings);
+    const writer = await ctx.pool.connect();
+    const dropper = await ctx.pool.connect();
+    try {
+      await writer.query("BEGIN");
+      await writer.query(
+        "INSERT INTO reservations (booking_id, resource_id, kind, starts_at, ends_at) VALUES ($1, $2, 'booking', $3, $4)",
+        [b.id, b.resourceId, new Date("2026-10-20T12:00:00Z"), new Date("2026-10-20T13:00:00Z")],
+      );
+      await dropper.query("SET lock_timeout = '300ms'");
+      await expect(dropper.query("ALTER TABLE reservations DROP CONSTRAINT reservations_no_overlap")).rejects.toThrow(/lock timeout/);
+      await writer.query("ROLLBACK");
+    } finally {
+      writer.release();
+      dropper.release();
+    }
+    expect(await missingCriticalSafeguards(ctx.db)).toEqual([]);
+  });
+
+  it("refuses a booking when the overlap constraint disappears after the cache was warmed", async () => {
+    expect(await bookingSafeguardsHealthy(ctx.db)).toBe(true); // warm the cache
+    await ctx.db.execute(sql`ALTER TABLE reservations DROP CONSTRAINT reservations_no_overlap`);
+    expect(await bookingSafeguardsHealthy(ctx.db)).toBe(true); // stale on purpose: cache not reset
+
+    const res = await app(ctx).post("/api/bookings").send(bookingBody()).expect(503);
+    expect(res.body.error).toBe("booking_disabled");
+    expect(await ctx.db.select().from(bookings)).toHaveLength(0);
+    expect(await ctx.db.select().from(reservations)).toHaveLength(0);
+  });
+
+  it("never lets simultaneous overlapping requests through while the constraint is missing", async () => {
+    expect(await bookingSafeguardsHealthy(ctx.db)).toBe(true);
+    await ctx.db.execute(sql`ALTER TABLE reservations DROP CONSTRAINT reservations_no_overlap`);
+    const results = await Promise.all([
+      app(ctx).post("/api/bookings").send(bookingBody({ start: "2026-10-14T12:00:00.000Z" })),
+      app(ctx).post("/api/bookings").send(bookingBody({ start: "2026-10-14T13:00:00.000Z", email: "b@example.test" })),
+    ]);
+    expect(results.map((r) => r.status)).toEqual([503, 503]);
+    expect(await ctx.db.select().from(reservations)).toHaveLength(0);
+    // Nothing overlapping was written, so automatic repair succeeds.
+    expect((await ensureSafeguards(ctx.pool)).failed).toEqual([]);
+  });
+
+  it("refuses rescheduling when the constraint disappears after the cache was warmed, keeping the original", async () => {
+    await app(ctx).post("/api/bookings").send(bookingBody()).expect(201);
+    const owner = await latestTokenFromOutbox(ctx, "owner.booking_request", "action");
+    await app(ctx).post("/api/actions").set("Authorization", `Bearer ${owner}`).send({ action: "approve", version: 1 }).expect(200);
+    const confirmedManage = await latestTokenFromOutbox(ctx, "customer.confirmed", "manage");
+
+    expect(await bookingSafeguardsHealthy(ctx.db)).toBe(true);
+    await ctx.db.execute(sql`ALTER TABLE reservations DROP CONSTRAINT reservations_no_overlap`);
+    const res = await app(ctx).post("/api/booking-management/reschedule").set("Authorization", `Bearer ${confirmedManage}`)
+      .send({ start: "2026-10-15T12:00:00.000Z" }).expect(503);
+    expect(res.body.error).toBe("booking_disabled");
+    const [b] = await ctx.db.select().from(bookings);
+    expect(b.status).toBe("confirmed");
+    expect(b.pendingChange).toBeNull();
+    expect(b.startAt.toISOString()).toBe("2026-10-14T12:00:00.000Z");
+    const active = (await ctx.db.select().from(reservations)).filter((r) => !r.releasedAt);
+    expect(active.map((r) => r.kind)).toEqual(["booking"]);
+  });
+
+  it("refuses moving a pending request when the constraint disappears after the cache was warmed", async () => {
+    const created = await app(ctx).post("/api/bookings").send(bookingBody()).expect(201);
+    const manage = created.body.manageUrl.split("#t=")[1];
+    expect(await bookingSafeguardsHealthy(ctx.db)).toBe(true);
+    await ctx.db.execute(sql`ALTER TABLE reservations DROP CONSTRAINT reservations_no_overlap`);
+    await app(ctx).post("/api/booking-management/reschedule").set("Authorization", `Bearer ${manage}`)
+      .send({ start: "2026-10-15T12:00:00.000Z" }).expect(503);
+    const [b] = await ctx.db.select().from(bookings);
+    expect(b.startAt.toISOString()).toBe("2026-10-14T12:00:00.000Z");
+    expect((await ctx.db.select().from(reservations)).filter((r) => !r.releasedAt)).toHaveLength(1);
   });
 });

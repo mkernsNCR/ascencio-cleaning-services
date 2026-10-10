@@ -5,6 +5,7 @@ import type pg from "pg";
 import type { Executor } from "./index";
 import { sql } from "drizzle-orm";
 import type { Logger } from "../lib/logger";
+import { AppError } from "../lib/errors";
 
 interface Safeguard {
   name: string;
@@ -149,11 +150,26 @@ export async function missingCriticalSafeguards(db: Executor): Promise<string[]>
   return missing;
 }
 
-// Short cache so request paths don't query the catalog every time; correct across processes because
-// each process re-reads the live catalog.
+/**
+ * Authoritative check for writes. Call inside the write transaction AFTER inserting the reservation:
+ * the insert holds a lock on `reservations` that conflicts with ALTER TABLE, so a constraint drop
+ * either committed before (and is seen here, rolling the write back) or waits until this transaction
+ * commits (and this row was checked under the constraint). Never uses the cache.
+ */
+export async function assertBookingSafeguards(tx: Executor): Promise<void> {
+  const missing = await missingCriticalSafeguards(tx);
+  if (missing.length) {
+    cached = { at: Date.now(), missing };
+    throw new AppError(503, "booking_disabled", `Database safeguards missing: ${missing.join(", ")}`);
+  }
+}
+
+// Short cache for read-only paths (availability display, early exits before slow calendar calls).
+// Writes must use assertBookingSafeguards() instead.
 let cached: { at: number; missing: string[] } | null = null;
 const CACHE_MS = 30_000;
 
+/** Cached, read-only health check. May be up to 30 seconds stale; not a guarantee for writes. */
 export async function bookingSafeguardsHealthy(db: Executor): Promise<boolean> {
   if (!cached || Date.now() - cached.at > CACHE_MS) cached = { at: Date.now(), missing: await missingCriticalSafeguards(db) };
   return cached.missing.length === 0;
