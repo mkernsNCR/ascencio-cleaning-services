@@ -131,8 +131,9 @@ export function adminRoutes(ctx: AppContext) {
   }));
 
   r.post("/discrepancies/:id/resolve", asyncHandler(async (req, res) => {
-    await ctx.db.update(calendarDiscrepancies).set({ resolvedAt: ctx.now(), resolvedBy: req.staff!.id })
-      .where(eq(calendarDiscrepancies.id, z.coerce.number().int().parse(req.params.id)));
+    const rows = await ctx.db.update(calendarDiscrepancies).set({ resolvedAt: ctx.now(), resolvedBy: req.staff!.id })
+      .where(eq(calendarDiscrepancies.id, z.coerce.number().int().parse(req.params.id))).returning({ id: calendarDiscrepancies.id });
+    if (!rows.length) throw notFound();
     res.json({ ok: true });
   }));
 
