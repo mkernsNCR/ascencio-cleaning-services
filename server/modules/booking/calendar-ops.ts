@@ -4,7 +4,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { getService } from "@shared/domain";
 import type { AppContext } from "../../context";
-import { bookings, calendarDiscrepancies, reservations, type BookingRow } from "../../db/schema";
+import { bookings, reservations, type BookingRow } from "../../db/schema";
 import type { Executor } from "../../db";
 import { CalendarError, eventIdForBooking, type CalendarEvent, type EventInput } from "../../integrations/google-calendar/types";
 import { getResource, getSettings } from "../settings/repository";
@@ -12,6 +12,9 @@ import { checkResourceInterval, reservationInterval } from "./availability";
 import { audit, getBooking, lockBooking, releaseReservations } from "./service";
 import { bookingMail, enqueueStaffAlert } from "./notify";
 import { revokeTokens } from "../tokens";
+import { flagDiscrepancy } from "./discrepancies";
+
+export { flagDiscrepancy };
 import { enqueueJob } from "../../jobs/queue";
 
 /** Thrown to ask the worker to retry later (with backoff unless `at` is given). */
@@ -19,13 +22,6 @@ export class RetryLater extends Error {
   constructor(message: string, public readonly at?: Date) {
     super(message);
   }
-}
-
-export async function flagDiscrepancy(
-  db: Executor,
-  params: { bookingId: string | null; kind: typeof calendarDiscrepancies.$inferInsert["kind"]; details: Record<string, unknown>; dedupeKey: string },
-) {
-  await db.insert(calendarDiscrepancies).values(params).onConflictDoNothing({ target: calendarDiscrepancies.dedupeKey });
 }
 
 async function setCalendarStatus(db: Executor, bookingId: string, status: BookingRow["calendarStatus"]) {

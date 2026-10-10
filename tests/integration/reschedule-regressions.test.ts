@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { app, bookingBody, createTestContext, latestTokenFromOutbox, resetDatabase, type TestContext } from "../helpers";
-import { actionTokens, bookings, jobs, pricingVersions, resources } from "../../server/db/schema";
+import { actionTokens, bookings, calendarDiscrepancies, jobs, pricingVersions, resources } from "../../server/db/schema";
 import { FakeCalendarGateway } from "../../server/integrations/google-calendar/fake";
 import { DEFAULT_PRICING_RULES } from "../../shared/domain";
 import { drain } from "../../server/jobs/worker";
@@ -70,6 +70,25 @@ describe("rescheduling respects unrelated calendar commitments", () => {
     const times = res.body.days[0].slots.map((s: any) => s.localTime);
     expect(times).not.toContain("11:30"); // needs 30 min after the 11:20 commitment
     expect(times).toContain("12:00");
+  });
+
+  it("keeps a booking's Google event as busy when it was moved away from its reservation, and flags it", async () => {
+    const { booking } = await confirmBooking(); // reservation 08:00–11:30 EDT
+    // Someone drags the event in Google to 10:00–13:30 EDT.
+    ctx.calendar.externalEdit("primary", booking.calendarEventId!, { start: new Date("2026-10-14T14:00:00Z"), end: new Date("2026-10-14T17:30:00Z") });
+
+    const res = await app(ctx).get("/api/availability?serviceId=standard&bedrooms=1&bathrooms=1&postalCode=20001&from=2026-10-14&to=2026-10-14").expect(200);
+    const times = res.body.days[0].slots.map((s: any) => s.localTime);
+    expect(times).not.toContain("11:30");
+    expect(times[0]).toBe("14:00"); // 13:30 + 30 min buffer
+    const late = await app(ctx).post("/api/bookings").send(bookingBody({ start: "2026-10-14T15:30:00.000Z", email: "late@example.test" })).expect(409);
+    expect(late.body.error).toBe("slot_unavailable");
+
+    const flagged = await ctx.db.select().from(calendarDiscrepancies).where(eq(calendarDiscrepancies.bookingId, booking.id));
+    expect(flagged.map((d) => d.kind)).toEqual(["event_moved"]);
+    // The customer's booking is not changed by the external edit.
+    const [after] = await ctx.db.select().from(bookings).where(eq(bookings.id, booking.id));
+    expect(after.startAt.toISOString()).toBe("2026-10-14T12:00:00.000Z");
   });
 
   it("still applies the buffer only once around the system's own confirmed events", async () => {

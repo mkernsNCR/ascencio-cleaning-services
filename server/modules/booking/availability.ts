@@ -13,6 +13,7 @@ import type { AppContext } from "../../context";
 import type { CalendarEvent, Interval } from "../../integrations/google-calendar/types";
 import { getActivePricing, getActiveResources, getSettings, resourceCalendars } from "../settings/repository";
 import { calculateEstimate } from "./estimate";
+import { flagDiscrepancy } from "./discrepancies";
 
 export const MAX_QUERY_DAYS = 42;
 
@@ -205,8 +206,9 @@ const APP_EVENT_MARKER = "ascencio-booking";
  *
  * External busy time comes from two sources, never merged before filtering:
  * - the crew's destination calendar, read as individual events so that only the system's own booking
- *   events are skipped (those already enforced by an active local reservation, plus `excludeEventId`
- *   for the booking being re-checked); every other event is kept intact;
+ *   events are skipped: those lying within an active local reservation of their booking (already
+ *   enforced locally), plus `excludeEventId` for the booking being re-checked. Own events moved in
+ *   Google away from their reservation stay busy and are flagged; foreign events are kept intact;
  * - busy-source calendars via FreeBusy, which never contain the system's events and are used as-is.
  */
 export async function loadSchedulableResources(
@@ -234,14 +236,27 @@ export async function loadSchedulableResources(
   const out: ResourceBusy[] = [];
   for (const resource of mapped) {
     const localReservations = local.get(resource.id) ?? [];
-    const enforcedLocally = new Set(localReservations.map((r) => r.bookingId));
     const events = destinations.get(resource.destinationCalendar!);
     let failed = !events || events === "error";
     const busy: Interval[] = [];
     if (events && events !== "error") {
       for (const ev of events) {
-        const own = ev.privateProps?.app === APP_EVENT_MARKER;
-        if (own && (ev.id === opts.excludeEventId || enforcedLocally.has(ev.privateProps?.bookingId ?? ""))) continue;
+        const ownBookingId = ev.privateProps?.app === APP_EVENT_MARKER ? ev.privateProps.bookingId : undefined;
+        if (ownBookingId && ev.id === opts.excludeEventId) continue;
+        if (ownBookingId) {
+          const reservationsForBooking = localReservations.filter((r) => r.bookingId === ownBookingId);
+          // Skip only when the event still sits where a local reservation already blocks the time.
+          if (reservationsForBooking.some((r) => ev.start >= r.start && ev.end <= r.end)) continue;
+          if (reservationsForBooking.length > 0) {
+            // Edited directly in Google: keep it as busy time and flag it. The booking is not changed.
+            await flagDiscrepancy(ctx.db, {
+              bookingId: ownBookingId,
+              kind: "event_moved",
+              details: { eventId: ev.id, googleStart: ev.start.toISOString(), googleEnd: ev.end.toISOString() },
+              dedupeKey: `event_moved:${ownBookingId}:${ev.start.toISOString()}`,
+            });
+          }
+        }
         busy.push({ start: ev.start, end: ev.end });
       }
     }
