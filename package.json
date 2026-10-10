@@ -1,16 +1,25 @@
 {
-  "name": "rest-express",
+  "name": "ascencio-cleaning-services",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "vite build && vite build --ssr src/entry-server.tsx --outDir ../dist/ssr && tsx scripts/prerender.ts && esbuild server/index.ts server/worker.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
+    "worker": "NODE_ENV=production node dist/worker.js",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "tsx server/scripts/migrate.ts",
+    "staff:create": "tsx server/scripts/create-staff.ts",
+    "seed:demo": "tsx server/scripts/seed-demo.ts",
+    "mail:test": "tsx server/scripts/test-mail.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
@@ -54,8 +63,10 @@
     "drizzle-zod": "^0.7.0",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.7.1",
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
+    "helmet": "^8.3.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
@@ -63,6 +74,7 @@
     "nodemailer": "^7.0.4",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
+    "pg": "^8.23.1",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -80,6 +92,8 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
     "@replit/vite-plugin-cartographer": "^0.2.7",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
@@ -90,20 +104,27 @@
     "@types/node": "20.16.11",
     "@types/passport": "^1.0.16",
     "@types/passport-local": "^1.0.38",
+    "@types/pg": "^8.23.1",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
+    "@types/supertest": "^7.2.1",
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
     "drizzle-kit": "^0.30.4",
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",
+    "supertest": "^7.3.1",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
-    "vite": "^5.4.14"
+    "vite": "^5.4.14",
+    "vitest": "^2.1.9"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "overrides": {
+    "playwright-core": "1.62.1"
   }
 }
