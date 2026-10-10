@@ -10,7 +10,7 @@ import {
 import { reservations, type ResourceRow } from "../../db/schema";
 import type { Executor } from "../../db";
 import type { AppContext } from "../../context";
-import type { Interval } from "../../integrations/google-calendar/types";
+import type { CalendarEvent, Interval } from "../../integrations/google-calendar/types";
 import { getActivePricing, getActiveResources, getSettings, resourceCalendars } from "../settings/repository";
 import { calculateEstimate } from "./estimate";
 
@@ -99,14 +99,18 @@ export function isCandidateFree(candidate: Interval, bufferMinutes: number, loca
   return !externalBusy.some((b) => overlaps(padded, b));
 }
 
+export interface LocalReservation extends Interval {
+  bookingId: string;
+}
+
 export async function loadLocalBusy(
   db: Executor,
   resourceIds: number[],
   from: Date,
   to: Date,
   excludeReservationIds: number[] = [],
-): Promise<Map<number, Interval[]>> {
-  const map = new Map<number, Interval[]>(resourceIds.map((id) => [id, []]));
+): Promise<Map<number, LocalReservation[]>> {
+  const map = new Map<number, LocalReservation[]>(resourceIds.map((id) => [id, []]));
   if (resourceIds.length === 0) return map;
   const rows = await db
     .select()
@@ -114,7 +118,7 @@ export async function loadLocalBusy(
     .where(and(inArray(reservations.resourceId, resourceIds), isNull(reservations.releasedAt), lt(reservations.startsAt, to), gt(reservations.endsAt, from)));
   for (const row of rows) {
     if (excludeReservationIds.includes(row.id)) continue;
-    map.get(row.resourceId)?.push({ start: row.startsAt, end: row.endsAt });
+    map.get(row.resourceId)?.push({ start: row.startsAt, end: row.endsAt, bookingId: row.bookingId });
   }
   return map;
 }
@@ -125,6 +129,7 @@ const FREEBUSY_CACHE_MS = 60_000;
 
 export function clearFreeBusyCache() {
   freeBusyCache.clear();
+  eventsCache.clear();
 }
 
 /**
@@ -159,9 +164,51 @@ export async function loadExternalBusy(
   return result;
 }
 
+// Short-lived cache of destination-calendar events for display only (same policy as FreeBusy).
+const eventsCache = new Map<string, { expires: number; value: CalendarEvent[] | "error" }>();
+
+/**
+ * Busy events on a crew's destination calendar. Unlike FreeBusy, events keep their identity, so the
+ * system's own booking events can be skipped without hiding unrelated commitments that overlap them.
+ */
+export async function loadDestinationEvents(
+  ctx: AppContext,
+  calendarId: string,
+  from: Date,
+  to: Date,
+  { useCache }: { useCache: boolean },
+): Promise<CalendarEvent[] | "error"> {
+  const key = `${calendarId}|${from.toISOString()}|${to.toISOString()}`;
+  if (useCache) {
+    const hit = eventsCache.get(key);
+    if (hit && hit.expires > Date.now()) return hit.value;
+  }
+  let value: CalendarEvent[] | "error";
+  try {
+    const { events } = await ctx.calendar.listEvents(calendarId, { timeMin: from, timeMax: to });
+    value = events.filter((ev) => ev.status !== "cancelled" && ev.transparency !== "transparent" && ev.start < to && ev.end > from);
+  } catch (error) {
+    ctx.log.warn("destination calendar listing failed", { error });
+    value = "error";
+  }
+  if (useCache) eventsCache.set(key, { expires: Date.now() + FREEBUSY_CACHE_MS, value });
+  return value;
+}
+
 export type ResourceBusy = { resource: ResourceRow; local: Interval[]; external: Interval[] };
 
-/** Resources that can be evaluated (calendar mapped and readable), with their busy data. */
+/** Marker written into extendedProperties.private of events this system creates. */
+const APP_EVENT_MARKER = "ascencio-booking";
+
+/**
+ * Resources that can be evaluated (calendar mapped and readable), with their busy data.
+ *
+ * External busy time comes from two sources, never merged before filtering:
+ * - the crew's destination calendar, read as individual events so that only the system's own booking
+ *   events are skipped (those already enforced by an active local reservation, plus `excludeEventId`
+ *   for the booking being re-checked); every other event is kept intact;
+ * - busy-source calendars via FreeBusy, which never contain the system's events and are used as-is.
+ */
 export async function loadSchedulableResources(
   ctx: AppContext,
   from: Date,
@@ -174,26 +221,32 @@ export async function loadSchedulableResources(
   const health = await ctx.calendar.health();
   if (health.status !== "connected") return { resources: [], calendarProblem: true };
 
-  const calendarIds = Array.from(new Set(mapped.flatMap(resourceCalendars)));
-  const external = await loadExternalBusy(ctx, calendarIds, from, to, { useCache: opts.useCache });
-  const local = await loadLocalBusy(ctx.db, mapped.map((r) => r.id), from, to, opts.excludeReservationIds);
-
-  // When re-checking an already-mapped booking, its own event must not count as a conflict.
-  let ownEvent: Interval | null = null;
-  if (opts.excludeEventId) {
-    for (const r of mapped) {
-      const ev = await ctx.calendar.getEvent(r.destinationCalendar!, opts.excludeEventId).catch(() => null);
-      if (ev && ev.status !== "cancelled") ownEvent = { start: ev.start, end: ev.end };
-    }
+  const busySources = (r: ResourceRow) => resourceCalendars(r).filter((c) => c !== r.destinationCalendar);
+  const freeBusyIds = Array.from(new Set(mapped.flatMap(busySources)));
+  const freeBusy = await loadExternalBusy(ctx, freeBusyIds, from, to, { useCache: opts.useCache });
+  const destinations = new Map<string, CalendarEvent[] | "error">();
+  for (const cal of new Set(mapped.map((r) => r.destinationCalendar!))) {
+    destinations.set(cal, await loadDestinationEvents(ctx, cal, from, to, { useCache: opts.useCache }));
   }
+  const local = await loadLocalBusy(ctx.db, mapped.map((r) => r.id), from, to, opts.excludeReservationIds);
 
   let calendarProblem = false;
   const out: ResourceBusy[] = [];
   for (const resource of mapped) {
+    const localReservations = local.get(resource.id) ?? [];
+    const enforcedLocally = new Set(localReservations.map((r) => r.bookingId));
+    const events = destinations.get(resource.destinationCalendar!);
+    let failed = !events || events === "error";
     const busy: Interval[] = [];
-    let failed = false;
-    for (const cal of resourceCalendars(resource)) {
-      const entry = external.get(cal);
+    if (events && events !== "error") {
+      for (const ev of events) {
+        const own = ev.privateProps?.app === APP_EVENT_MARKER;
+        if (own && (ev.id === opts.excludeEventId || enforcedLocally.has(ev.privateProps?.bookingId ?? ""))) continue;
+        busy.push({ start: ev.start, end: ev.end });
+      }
+    }
+    for (const cal of busySources(resource)) {
+      const entry = freeBusy.get(cal);
       if (!entry || entry === "error") failed = true;
       else busy.push(...entry);
     }
@@ -201,29 +254,9 @@ export async function loadSchedulableResources(
       calendarProblem = true;
       continue; // fail closed for this resource only
     }
-    // Our own confirmed bookings appear in Google too (as events spanning service + buffer). They are
-    // already enforced by local reservations, so remove them from the external list; otherwise the
-    // external padding would apply the buffer twice.
-    const localIntervals = local.get(resource.id) ?? [];
-    let filtered = ownEvent ? subtractInterval(busy, ownEvent) : busy;
-    for (const own of localIntervals) filtered = subtractInterval(filtered, own);
-    out.push({ resource, local: localIntervals, external: filtered });
+    out.push({ resource, local: localReservations, external: busy });
   }
   return { resources: out, calendarProblem };
-}
-
-/** Removes one interval (a booking's own event) from a busy list. */
-export function subtractInterval(busy: Interval[], remove: Interval): Interval[] {
-  const out: Interval[] = [];
-  for (const b of busy) {
-    if (!overlaps(b, remove)) {
-      out.push(b);
-      continue;
-    }
-    if (b.start < remove.start) out.push({ start: b.start, end: remove.start });
-    if (b.end > remove.end) out.push({ start: remove.end, end: b.end });
-  }
-  return out;
 }
 
 function dayBounds(date: LocalDate, timezone: string): Interval {
@@ -238,6 +271,12 @@ export interface AvailabilityOptions {
   excludeReservationIds?: number[];
   excludeEventId?: string | null;
   onlyResourceId?: number;
+  /**
+   * Reschedule view: the existing booking's duration. Its terms were set when it was requested, so
+   * current pricing, coverage, and the new-booking feature flag do not apply (submission validates
+   * against the same booked duration).
+   */
+  fixedDurationMinutes?: number;
 }
 
 export async function getAvailability(ctx: AppContext, query: AvailabilityQuery, opts: AvailabilityOptions = {}): Promise<AvailabilityResponse> {
@@ -246,17 +285,21 @@ export async function getAvailability(ctx: AppContext, query: AvailabilityQuery,
   const { earliestDate, latestDate } = bookingWindow(settings, now);
   const base = { timezone: settings.timezone, earliestDate, latestDate, days: [] as AvailabilityDay[] };
 
-  const pricing = await getActivePricing(ctx.db);
-  const estimate = calculateEstimate(query.serviceId, { bedrooms: query.bedrooms, bathrooms: query.bathrooms }, pricing.rules);
-  if (estimate.quoteRequired || !estimate.durationMinutes) return { ...base, status: "quote_required", durationMinutes: null };
-  if (!isPostalCodeCovered(query.postalCode, settings.coverage)) {
-    return { ...base, status: "not_covered", durationMinutes: estimate.durationMinutes };
+  let durationMinutes: number;
+  if (opts.fixedDurationMinutes) {
+    durationMinutes = opts.fixedDurationMinutes;
+  } else {
+    const pricing = await getActivePricing(ctx.db);
+    const estimate = calculateEstimate(query.serviceId, { bedrooms: query.bedrooms, bathrooms: query.bathrooms }, pricing.rules);
+    if (estimate.quoteRequired || !estimate.durationMinutes) return { ...base, status: "quote_required", durationMinutes: null };
+    durationMinutes = estimate.durationMinutes;
+    if (!isPostalCodeCovered(query.postalCode, settings.coverage)) return { ...base, status: "not_covered", durationMinutes };
+    if (!ctx.config.bookingEnabled) return { ...base, status: "booking_disabled", durationMinutes };
   }
-  if (!ctx.config.bookingEnabled) return { ...base, status: "booking_disabled", durationMinutes: estimate.durationMinutes };
 
   let from = compareDates(query.from, localDateOf(now, settings.timezone)) < 0 ? localDateOf(now, settings.timezone) : query.from;
   let to = compareDates(query.to, latestDate) > 0 ? latestDate : query.to;
-  if (compareDates(to, from) < 0) return { ...base, status: "ok", durationMinutes: estimate.durationMinutes };
+  if (compareDates(to, from) < 0) return { ...base, status: "ok", durationMinutes };
   if (daysBetween(from, to) >= MAX_QUERY_DAYS) to = addDays(from, MAX_QUERY_DAYS - 1);
 
   const rangeStart = dayBounds(from, settings.timezone).start;
@@ -269,12 +312,12 @@ export async function getAvailability(ctx: AppContext, query: AvailabilityQuery,
   const calendarProblem = loaded.calendarProblem;
   const schedulable = opts.onlyResourceId ? loaded.resources.filter((r) => r.resource.id === opts.onlyResourceId) : loaded.resources;
   if (schedulable.length === 0) {
-    return { ...base, status: "calendar_unavailable", durationMinutes: estimate.durationMinutes };
+    return { ...base, status: "calendar_unavailable", durationMinutes };
   }
 
   const days: AvailabilityDay[] = [];
   for (let date = from; compareDates(date, to) <= 0; date = addDays(date, 1)) {
-    const { status, candidates } = generateCandidates(date, settings, estimate.durationMinutes, now);
+    const { status, candidates } = generateCandidates(date, settings, durationMinutes, now);
     if (status !== "open") {
       days.push({ date, status, slots: [] });
       continue;
@@ -287,7 +330,7 @@ export async function getAvailability(ctx: AppContext, query: AvailabilityQuery,
   }
   // Partial calendar failure still offers slots from healthy crews; total failure is reported above.
   void calendarProblem;
-  return { ...base, status: "ok", durationMinutes: estimate.durationMinutes, days };
+  return { ...base, status: "ok", durationMinutes, days };
 }
 
 /**

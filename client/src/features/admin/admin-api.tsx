@@ -107,6 +107,7 @@ const GENERIC: Record<string, string> = {
   not_retryable: "This item is no longer in a failed state, so there is nothing to retry. The list has been refreshed.",
   stale_version: "This record changed in another session. The latest version has been loaded; review it and try again.",
   not_pending: "This request is no longer pending — it was already decided, expired, or cancelled. The list has been refreshed.",
+  start_passed: "The requested start time has already passed, so this request can't be approved. Decline it or contact the customer.",
   calendar_operation_in_progress: "A calendar operation for this booking is still being resolved. Wait a moment and try again.",
   calendar_disconnected: "Google Calendar is not connected, so bookings cannot be confirmed. Reconnect it on the Integrations page.",
   not_confirmed: "Only confirmed bookings can be marked completed.",

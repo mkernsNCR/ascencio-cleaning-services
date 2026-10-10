@@ -1,12 +1,12 @@
 // Booking lifecycle commands. Routes call these; they own scheduling rules and state transitions.
 // Database transactions never wait on external APIs: calendar work is handed to durable jobs.
 import crypto from "crypto";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { z } from "zod";
 import type { BookingReceipt, ManagedBooking, bookingRequestSchema } from "@shared/api";
 import { getService, isPostalCodeCovered, type ServiceId } from "@shared/domain";
 import type { AppContext } from "../../context";
-import { bookings, bookingAudit, reservations, type BookingRow, type BookingStatus } from "../../db/schema";
+import { bookings, bookingAudit, jobs, reservations, type BookingRow, type BookingStatus } from "../../db/schema";
 import { pgErrorCode, PG_EXCLUSION_VIOLATION, PG_UNIQUE_VIOLATION, type Executor } from "../../db";
 import { AppError, badRequest, conflict, notFound, unavailable } from "../../lib/errors";
 import { bookingReference, canonicalHash } from "../../lib/crypto";
@@ -204,6 +204,7 @@ export async function requestApproval(
     if (b.status === "confirmed") return { jobId: null, booking: b };
     if (b.status !== "pending_approval") throw conflict("not_pending", `Booking is ${b.status}.`);
     if (b.version !== params.version) throw conflict("stale_version", "This request changed since the link was sent.");
+    if (b.startAt.getTime() <= ctx.now().getTime()) throw conflict("start_passed", "The requested start time has already passed.");
     if (b.calendarStatus === "creating" || b.calendarStatus === "retrying") return { jobId: null, booking: b };
     if (params.tokenId !== undefined && !(await consumeToken(tx, params.tokenId, ctx.now()))) {
       throw conflict("token_used", "This link was already used.");
@@ -379,10 +380,13 @@ export async function rescheduleByCustomer(ctx: AppContext, bookingId: string, n
         // taken the whole transaction rolls back and the original reservation is untouched.
         await releaseReservations(tx, b.id, "rescheduled", now);
         await tx.insert(reservations).values({ bookingId: b.id, resourceId: resource.id, kind: "booking", startsAt: blocked.start, endsAt: blocked.end });
+        // A request must be decided before its appointment starts: moving it earlier caps the expiry.
+        const expiresAt = new Date(Math.min((b.expiresAt ?? newStart).getTime(), newStart.getTime()));
         const [updated] = await tx.update(bookings).set({
           startAt: newStart, endAt: eligibility.end, resourceId: resource.id, version: b.version + 1,
-          calendarStatus: "not_created",
+          calendarStatus: "not_created", expiresAt,
         }).where(eq(bookings.id, b.id)).returning();
+        await rescheduleExpiryJob(tx, b.id, expiresAt);
         await revokeTokens(tx, "booking.decide", b.id, now);
         await bookingMail.pendingUpdated(ctx, tx, updated);
         await audit(tx, b.id, { kind: "customer" }, "pending_rescheduled", b.status, b.status, { from: b.startAt.toISOString(), to: newStart.toISOString() });
@@ -412,6 +416,16 @@ export async function rescheduleByCustomer(ctx: AppContext, bookingId: string, n
 // ---------------------------------------------------------------------------------------------
 // Expiry
 // ---------------------------------------------------------------------------------------------
+
+/** Moves the booking's expiry job to the new deadline (re-arming it if it already finished). */
+async function rescheduleExpiryJob(db: Executor, bookingId: string, expiresAt: Date) {
+  const moved = await db.update(jobs).set({ runAt: expiresAt, updatedAt: new Date() })
+    .where(and(eq(jobs.uniqueKey, `expire:${bookingId}`), inArray(jobs.status, ["queued", "failed"])))
+    .returning({ id: jobs.id });
+  if (moved.length === 0) {
+    await enqueueJob(db, { type: "booking.expire", payload: { bookingId }, uniqueKey: `expire:${bookingId}`, requeueIfDone: true, runAt: expiresAt });
+  }
+}
 
 /** Expires an undecided request. Returns "retry_at" when it is not yet safe or not yet due. */
 export async function expireBooking(ctx: AppContext, bookingId: string): Promise<{ result: "expired" | "skipped" } | { result: "retry_at"; at: Date }> {

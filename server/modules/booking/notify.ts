@@ -106,14 +106,7 @@ export const bookingMail = {
     await toCustomer(db, b, "customer.request_received",
       customerTemplates.requestReceived(view, u.manage(manageToken), settings.responsePromise?.[b.locale] ?? null));
     await toOwner(ctx, db, b, "owner.booking_request", ownerTemplates.bookingRequest(view, u.action(decision.token), b.expiresAt));
-    if (b.expiresAt) {
-      const warnAt = new Date(b.expiresAt.getTime() - settings.ownerExpiryWarningHours * 3_600_000);
-      if (warnAt > ctx.now()) {
-        const warnToken = await issueDecisionToken(db, b, ctx.now());
-        await toOwner(ctx, db, b, "owner.expiry_warning", ownerTemplates.expiryWarning(view, u.action(warnToken.token), b.expiresAt),
-          { sendAt: warnAt, condition: true });
-      }
-    }
+    await scheduleExpiryWarning(ctx, db, b, view, settings.ownerExpiryWarningHours);
   },
 
   /** A pending request's time changed: fresh owner decision link and customer receipt. */
@@ -126,6 +119,7 @@ export const bookingMail = {
     await toCustomer(db, b, "customer.request_received",
       customerTemplates.requestReceived(view, u.manage(manage.token), settings.responsePromise?.[b.locale] ?? null));
     await toOwner(ctx, db, b, "owner.booking_request", ownerTemplates.bookingRequest(view, u.action(decision.token), b.expiresAt));
+    await scheduleExpiryWarning(ctx, db, b, view, settings.ownerExpiryWarningHours);
   },
 
   async confirmed(ctx: AppContext, db: Executor, b: BookingRow) {
@@ -188,6 +182,16 @@ export const bookingMail = {
       { keySuffix: `:${attemptKey}` });
   },
 };
+
+/** Owner reminder before an undecided request expires; suppressed at dispatch if the booking moved on. */
+async function scheduleExpiryWarning(ctx: AppContext, db: Executor, b: BookingRow, view: BookingView, warningHours: number) {
+  if (!b.expiresAt) return;
+  const warnAt = new Date(b.expiresAt.getTime() - warningHours * 3_600_000);
+  if (warnAt <= ctx.now()) return;
+  const warnToken = await issueDecisionToken(db, b, ctx.now());
+  await toOwner(ctx, db, b, "owner.expiry_warning", ownerTemplates.expiryWarning(view, urls(ctx).action(warnToken.token), b.expiresAt),
+    { sendAt: warnAt, condition: true });
+}
 
 /** Staff alert for integration or delivery failures (deduplicated by key). */
 export async function enqueueStaffAlert(ctx: AppContext, db: Executor, key: string, subject: string, detail: string) {

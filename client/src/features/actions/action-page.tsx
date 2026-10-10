@@ -29,6 +29,7 @@ const ERROR_TEXT: Record<string, string> = {
   invalid_link: "This link isn't valid.",
   stale_version: "This request changed after the email was sent (for example, the customer picked a new time). Use the newest email or the dashboard.",
   not_pending: "This request has already been decided.",
+  start_passed: "The requested start time has already passed, so this request can no longer be approved. Decline it or contact the customer.",
   calendar_disconnected: "Google Calendar is not connected, so nothing was changed. Reconnect it in the dashboard and try again — this link still works.",
   calendar_operation_in_progress: "A calendar operation is still being resolved. Try again in a minute.",
   already_moderated: "This review was already moderated.",

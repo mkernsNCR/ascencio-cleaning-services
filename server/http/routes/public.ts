@@ -112,6 +112,7 @@ export function publicRoutes(ctx: AppContext) {
       excludeReservationIds: own,
       excludeEventId: booking.calendarEventId,
       onlyResourceId: booking.status === "confirmed" ? booking.resourceId : undefined,
+      fixedDurationMinutes: booking.durationMinutes,
     }));
   }));
 

@@ -147,6 +147,7 @@ export class FakeCalendarGateway implements CalendarGateway {
 
   async listEvents(calendarId: string, options: { syncToken?: string | null; timeMin?: Date; timeMax?: Date }) {
     this.ensureConnected();
+    if (this.failingCalendars.has(calendarId)) throw new CalendarError("unavailable", "Simulated backend error", 503);
     if (options.syncToken && this.invalidSyncTokens.has(options.syncToken)) {
       throw new CalendarError("sync_token_invalid", "Sync token is no longer valid", 410);
     }
@@ -161,7 +162,16 @@ export class FakeCalendarGateway implements CalendarGateway {
       if (options.timeMax && ev.start >= options.timeMax) return false;
       return true;
     });
-    return { events: events.map((e) => ({ ...e })), nextSyncToken: `${calendarId}:${this.seq}` };
+    const listed: CalendarEvent[] = events.map((e) => ({ ...e }));
+    // Simulated busy blocks behave like unrelated events in a time-range listing.
+    if (!options.syncToken) {
+      (this.externalBusy.get(calendarId) ?? []).forEach((b, i) => {
+        if ((!options.timeMin || b.end > options.timeMin) && (!options.timeMax || b.start < options.timeMax)) {
+          listed.push({ id: `busy${i}`, status: "confirmed", start: b.start, end: b.end, transparency: "opaque" });
+        }
+      });
+    }
+    return { events: listed, nextSyncToken: `${calendarId}:${this.seq}` };
   }
 
   async watch(calendarId: string, channel: { id: string; token: string; address: string; ttlSeconds: number }) {
