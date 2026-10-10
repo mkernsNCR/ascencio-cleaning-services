@@ -8,6 +8,7 @@ import { getService, isPostalCodeCovered, type ServiceId } from "@shared/domain"
 import type { AppContext } from "../../context";
 import { bookings, bookingAudit, jobs, reservations, type BookingRow, type BookingStatus } from "../../db/schema";
 import { pgErrorCode, PG_EXCLUSION_VIOLATION, PG_UNIQUE_VIOLATION, type Executor } from "../../db";
+import { bookingSafeguardsHealthy } from "../../db/safeguards";
 import { AppError, badRequest, conflict, notFound, unavailable } from "../../lib/errors";
 import { bookingReference, canonicalHash } from "../../lib/crypto";
 import { enqueueJob } from "../../jobs/queue";
@@ -101,7 +102,7 @@ export async function createBookingRequest(ctx: AppContext, input: ParsedBooking
   const [existing] = await ctx.db.select().from(bookings).where(eq(bookings.idempotencyKey, input.idempotencyKey));
   if (existing) return replayExisting(ctx, existing, requestHash);
 
-  if (!ctx.config.bookingEnabled) throw unavailable("booking_disabled");
+  if (!ctx.config.bookingEnabled || !(await bookingSafeguardsHealthy(ctx.db))) throw unavailable("booking_disabled");
   const service = getService(input.serviceId);
   if (!service || service.mode !== "bookable") throw badRequest("quote_required");
 
@@ -348,6 +349,7 @@ export async function rescheduleByCustomer(ctx: AppContext, bookingId: string, n
   const now = ctx.now();
   if (current.status === "confirmed" && !policyAllows(current, settings.rescheduleCutoffHours, now)) throw conflict("inside_cutoff");
 
+  if (!(await bookingSafeguardsHealthy(ctx.db))) throw unavailable("booking_disabled");
   const newStart = new Date(newStartIso);
   if (newStart.getTime() === current.startAt.getTime()) return current;
   const ownReservations = (await ctx.db.select({ id: reservations.id }).from(reservations)

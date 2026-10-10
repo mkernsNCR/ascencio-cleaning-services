@@ -23,6 +23,18 @@ export async function runMigrations(pool: pg.Pool, dir = MIGRATIONS_DIR, log: (m
       (await client.query<{ name: string }>("SELECT name FROM schema_migrations")).rows.map((r) => r.name),
     );
     const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+    // A schema created outside this runner (e.g. a hosting tool copying tables) has the tables but no
+    // migration record. Treat the foundation as applied instead of failing on "already exists";
+    // ensureSafeguards() then restores any constraints that tool could not copy.
+    const foundation = files[0];
+    if (foundation && !applied.has(foundation)) {
+      const exists = (await client.query<{ present: boolean }>("SELECT to_regclass('public.bookings') IS NOT NULL AS present")).rows[0]?.present;
+      if (exists) {
+        await client.query("INSERT INTO schema_migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [foundation]);
+        applied.add(foundation);
+        log(`recorded ${foundation} as a baseline (tables already existed)`);
+      }
+    }
     for (const file of files) {
       if (applied.has(file)) continue;
       const sqlText = fs.readFileSync(path.join(dir, file), "utf8");

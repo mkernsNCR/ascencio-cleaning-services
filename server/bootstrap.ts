@@ -1,6 +1,7 @@
 import { loadConfig, type AppConfig } from "./config";
 import { createDb, createPool } from "./db";
 import { runMigrations } from "./db/migrate";
+import { ensureSafeguards, reportSafeguards } from "./db/safeguards";
 import { ensureDefaults } from "./modules/settings/repository";
 import { createMailer } from "./notifications/mailer";
 import { FakeCalendarGateway } from "./integrations/google-calendar/fake";
@@ -17,6 +18,7 @@ export async function bootstrap(config: AppConfig = loadConfig()): Promise<AppCo
   await runMigrations(pool, undefined, (m) => log.info(m));
   const db = createDb(pool);
   await ensureDefaults(db);
+  await reportSafeguards(await ensureSafeguards(pool), log);
 
   let calendar;
   if (config.google.mode === "fake") {
@@ -31,3 +33,4 @@ export async function bootstrap(config: AppConfig = loadConfig()): Promise<AppCo
 
   return { config, pool, db, calendar, mailer: createMailer(config, log), log, now: () => new Date(), kick: () => {} };
 }
+

@@ -9,6 +9,7 @@ import { enqueueStaffAlert } from "../modules/booking/notify";
 import { purgeExpiredTokens } from "../modules/tokens";
 import { ensureWatchChannels, reconcile, syncCalendar } from "../integrations/google-calendar/sync";
 import { enqueueJob } from "./queue";
+import { ensureSafeguards, reportSafeguards, resetSafeguardCache } from "../db/safeguards";
 
 const STALE_LOCK_MS = 10 * 60_000;
 
@@ -63,10 +64,18 @@ async function runHandler(ctx: AppContext, job: JobRow): Promise<void> {
     case "calendar.watch_renew":
       await ensureWatchChannels(ctx);
       return;
-    case "maintenance.cleanup":
+    case "maintenance.cleanup": {
+      const report = await ensureSafeguards(ctx.pool);
+      resetSafeguardCache();
+      reportSafeguards(report, ctx.log);
+      if (report.failed.length) {
+        await enqueueStaffAlert(ctx, ctx.db, `safeguards:${new Date(ctx.now()).toISOString().slice(0, 10)}`, "Online booking paused: database safeguard missing",
+          `These database protections could not be restored: ${report.failed.map((f) => `${f.name} (${f.error})`).join("; ")}. Online booking shows the contact form until this is fixed.`);
+      }
       await purgeExpiredTokens(ctx.db, new Date(ctx.now().getTime() - 90 * 86_400_000));
       await ctx.db.execute(sql`DELETE FROM jobs WHERE status = 'succeeded' AND updated_at < ${new Date(ctx.now().getTime() - 30 * 86_400_000)}`);
       return;
+    }
     default:
       throw new Error(`Unknown job type ${job.type}`);
   }

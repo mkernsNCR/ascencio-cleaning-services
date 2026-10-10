@@ -106,7 +106,7 @@ export interface OverviewResponse {
     mode: "fake" | "google";
     sync: { calendarId: string; lastSyncAt: string | null; lastError: string | null; channelExpiresAt: string | null }[];
   };
-  launchChecklist: { settingsApproved: boolean; pricesApproved: boolean; mail: "smtp" | "log"; bookingEnabled: boolean };
+  launchChecklist: { settingsApproved: boolean; pricesApproved: boolean; mail: "smtp" | "log"; bookingEnabled: boolean; databaseSafeguardsMissing: string[] };
 }
 
 export type DiscrepancyKind = "event_moved" | "event_deleted" | "event_collision" | "approval_conflict" | "reschedule_conflict" | "unmapped_event";

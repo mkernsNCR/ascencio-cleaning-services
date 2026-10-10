@@ -124,6 +124,13 @@ function OverviewContent({ data }: { data: OverviewResponse }) {
             <ChecklistItem ok={lc.mail === "smtp"} label="Real email sending" detail={lc.mail === "smtp" ? "Mail transport is SMTP." : "Mail transport is \"log\": emails are written to the server log, NOT sent to anyone (set MAIL_TRANSPORT=smtp)."} />
             <ChecklistItem ok={calendarOk} label="Google Calendar connected" detail={calendarOk ? "Live Google Calendar is connected." : "Calendar is in fake mode or not connected."} href="/integrations" />
             <ChecklistItem ok={lc.bookingEnabled} label="Online booking enabled" detail={lc.bookingEnabled ? "Customers can submit booking requests." : "Online booking is turned off (BOOKING_ENABLED); customers are routed to the contact form."} />
+            <ChecklistItem
+              ok={lc.databaseSafeguardsMissing.length === 0}
+              label="Database booking safeguards"
+              detail={lc.databaseSafeguardsMissing.length === 0
+                ? "Overlap protection and status rules are active."
+                : `Missing: ${lc.databaseSafeguardsMissing.join(", ")}. Online booking is paused until they are restored (checked at startup and every 15 minutes). Never run drizzle-kit push against this database.`}
+            />
           </ul>
         </Card>
       </div>
