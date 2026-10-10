@@ -8,6 +8,7 @@ import {
   pricingVersions, resources, reviews, staffUsers,
 } from "../../db/schema";
 import { verifyPassword } from "../../lib/crypto";
+import { missingCriticalSafeguards } from "../../db/safeguards";
 import { conflict, notFound, unauthorized } from "../../lib/errors";
 import { completeBooking, getBooking, rejectBooking, requestApproval } from "../../modules/booking/service";
 import { moderateReview } from "../../modules/inquiries";
@@ -73,7 +74,10 @@ export function adminRoutes(ctx: AppContext) {
     res.json({
       counts: { pending, upcoming, discrepancies, mailFailed, jobsDead, jobsRetrying },
       calendar: { ...health, mode: ctx.config.google.mode, sync: sync.map((s) => ({ calendarId: s.calendarId, lastSyncAt: s.lastSyncAt, lastError: s.lastError, channelExpiresAt: s.channelExpiresAt })) },
-      launchChecklist: { settingsApproved: !!approvedAt, pricesApproved: pricing.approved, mail: ctx.mailer.kind, bookingEnabled: ctx.config.bookingEnabled },
+      launchChecklist: {
+        settingsApproved: !!approvedAt, pricesApproved: pricing.approved, mail: ctx.mailer.kind, bookingEnabled: ctx.config.bookingEnabled,
+        databaseSafeguardsMissing: await missingCriticalSafeguards(ctx.db),
+      },
     });
   }));
 

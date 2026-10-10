@@ -55,6 +55,27 @@ tests/                 Vitest unit + PostgreSQL integration tests
 - Email links carry random, hashed, expiring, single-use credentials in the URL fragment. Opening a
   link never changes anything; actions require an explicit POST.
 
+## Database schema management (important)
+
+The schema is defined by the SQL files in `migrations/`, applied automatically on startup. **Never run
+`drizzle-kit push`** (or let a tool sync the database from `server/db/schema.ts`): Drizzle cannot
+represent the reservation overlap constraint, its generated range column, the booking status trigger,
+several foreign keys and indexes, or the `session` and `schema_migrations` tables, so a push silently
+drops them. `drizzle.config.ts` refuses `push`/`generate`/`migrate` for this reason.
+
+As a safety net, every startup and the worker's 15-minute maintenance job check these safeguards and
+restore any that are missing (logged as "restored missing database safeguards"). If one cannot be
+restored (for example, overlapping bookings were created while protection was missing), online
+booking pauses and shows the contact form, staff get an alert, and the dashboard Overview lists what
+is missing. `npm run db:migrate` runs the same repair and exits non-zero if anything is still missing.
+
+To check a database directly:
+
+```sql
+SELECT conname FROM pg_constraint WHERE conname = 'reservations_no_overlap';  -- expect 1 row
+SELECT tgname FROM pg_trigger WHERE tgname = 'bookings_transition';           -- expect 1 row
+```
+
 ## Running locally
 
 ```bash

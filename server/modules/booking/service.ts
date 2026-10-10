@@ -8,6 +8,7 @@ import { getService, isPostalCodeCovered, type ServiceId } from "@shared/domain"
 import type { AppContext } from "../../context";
 import { bookings, bookingAudit, jobs, reservations, type BookingRow, type BookingStatus } from "../../db/schema";
 import { pgErrorCode, PG_EXCLUSION_VIOLATION, PG_UNIQUE_VIOLATION, type Executor } from "../../db";
+import { assertBookingSafeguards, bookingSafeguardsHealthy } from "../../db/safeguards";
 import { AppError, badRequest, conflict, notFound, unavailable } from "../../lib/errors";
 import { bookingReference, canonicalHash } from "../../lib/crypto";
 import { enqueueJob } from "../../jobs/queue";
@@ -101,7 +102,8 @@ export async function createBookingRequest(ctx: AppContext, input: ParsedBooking
   const [existing] = await ctx.db.select().from(bookings).where(eq(bookings.idempotencyKey, input.idempotencyKey));
   if (existing) return replayExisting(ctx, existing, requestHash);
 
-  if (!ctx.config.bookingEnabled) throw unavailable("booking_disabled");
+  // Cached early exit only; the authoritative check runs inside the write transaction.
+  if (!ctx.config.bookingEnabled || !(await bookingSafeguardsHealthy(ctx.db))) throw unavailable("booking_disabled");
   const service = getService(input.serviceId);
   if (!service || service.mode !== "bookable") throw badRequest("quote_required");
 
@@ -160,6 +162,7 @@ export async function createBookingRequest(ctx: AppContext, input: ParsedBooking
         await tx.insert(reservations).values({
           bookingId: id, resourceId: resource.id, kind: "booking", startsAt: blocked.start, endsAt: blocked.end,
         });
+        await assertBookingSafeguards(tx);
         const manage = await issueManageToken(tx, row);
         await bookingMail.requested(ctx, tx, row, manage.token);
         await enqueueJob(tx, { type: "booking.expire", payload: { bookingId: id }, uniqueKey: `expire:${id}`, runAt: expiresAt });
@@ -348,6 +351,7 @@ export async function rescheduleByCustomer(ctx: AppContext, bookingId: string, n
   const now = ctx.now();
   if (current.status === "confirmed" && !policyAllows(current, settings.rescheduleCutoffHours, now)) throw conflict("inside_cutoff");
 
+  if (!(await bookingSafeguardsHealthy(ctx.db))) throw unavailable("booking_disabled");
   const newStart = new Date(newStartIso);
   if (newStart.getTime() === current.startAt.getTime()) return current;
   const ownReservations = (await ctx.db.select({ id: reservations.id }).from(reservations)
@@ -380,6 +384,7 @@ export async function rescheduleByCustomer(ctx: AppContext, bookingId: string, n
         // taken the whole transaction rolls back and the original reservation is untouched.
         await releaseReservations(tx, b.id, "rescheduled", now);
         await tx.insert(reservations).values({ bookingId: b.id, resourceId: resource.id, kind: "booking", startsAt: blocked.start, endsAt: blocked.end });
+        await assertBookingSafeguards(tx);
         // A request must be decided before its appointment starts: moving it earlier caps the expiry.
         const expiresAt = new Date(Math.min((b.expiresAt ?? newStart).getTime(), newStart.getTime()));
         const [updated] = await tx.update(bookings).set({
@@ -396,6 +401,7 @@ export async function rescheduleByCustomer(ctx: AppContext, bookingId: string, n
       const [target] = await tx.insert(reservations).values({
         bookingId: b.id, resourceId: b.resourceId, kind: "reschedule_target", startsAt: blocked.start, endsAt: blocked.end,
       }).returning();
+      await assertBookingSafeguards(tx);
       const [updated] = await tx.update(bookings).set({
         pendingChange: { kind: "reschedule", startAt: newStart.toISOString(), endAt: eligibility.end.toISOString(), reservationId: target.id, requestedAt: now.toISOString() },
       }).where(eq(bookings.id, b.id)).returning();

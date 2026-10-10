@@ -14,6 +14,7 @@ import type { CalendarEvent, Interval } from "../../integrations/google-calendar
 import { getActivePricing, getActiveResources, getSettings, resourceCalendars } from "../settings/repository";
 import { calculateEstimate } from "./estimate";
 import { flagDiscrepancy } from "./discrepancies";
+import { bookingSafeguardsHealthy } from "../../db/safeguards";
 
 export const MAX_QUERY_DAYS = 42;
 
@@ -311,6 +312,9 @@ export async function getAvailability(ctx: AppContext, query: AvailabilityQuery,
     if (!isPostalCodeCovered(query.postalCode, settings.coverage)) return { ...base, status: "not_covered", durationMinutes };
     if (!ctx.config.bookingEnabled) return { ...base, status: "booking_disabled", durationMinutes };
   }
+
+  // Without the database overlap/transition safeguards, offering slots would be unsafe.
+  if (!(await bookingSafeguardsHealthy(ctx.db))) return { ...base, status: "booking_disabled", durationMinutes };
 
   let from = compareDates(query.from, localDateOf(now, settings.timezone)) < 0 ? localDateOf(now, settings.timezone) : query.from;
   let to = compareDates(query.to, latestDate) > 0 ? latestDate : query.to;
